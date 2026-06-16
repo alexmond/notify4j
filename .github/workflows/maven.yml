@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # for the dependency-graph snapshot submission
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -39,8 +41,6 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/**/surefire-reports/TEST-*.xml
 
-      # Dependency snapshot needs the dependency-graph API, which isn't accessible on a private repo
-      # (403 "Resource not accessible by integration"). Re-enable once notify4j is public.
-      # - name: Submit Dependency Snapshot
-      #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      #   uses: advanced-security/maven-dependency-submission-action@v5
+      - name: Submit Dependency Snapshot
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: advanced-security/maven-dependency-submission-action@v5
