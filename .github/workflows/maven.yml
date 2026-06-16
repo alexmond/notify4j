@@ -20,12 +20,8 @@ jobs:
       - name: Build with Maven
         run: ./mvnw -B package -Pdefault --no-transfer-progress
 
-      - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
-        with:
-          files: |
-            **/surefire-reports/TEST-*.xml
+      # EnricoMi/publish-unit-test-result-action is added in extraction #2 (it errors when there are
+      # no test files; the scaffold has none yet). Codecov test-results upload below covers it meanwhile.
 
       - name: Add coverage to PR
         if: ${{ !cancelled() }}
