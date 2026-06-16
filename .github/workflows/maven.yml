@@ -51,6 +51,9 @@ jobs:
           token: ${{ env.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/**/surefire-reports/TEST-*.xml
 
+      # Best-effort supply-chain snapshot; needs the repo's Dependency graph feature
+      # enabled (Settings -> Code security). Never fail CI on it.
       - name: Submit Dependency Snapshot
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
         uses: advanced-security/maven-dependency-submission-action@v5
