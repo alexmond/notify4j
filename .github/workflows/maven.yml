@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     permissions:
       contents: write        # for the dependency-graph snapshot submission
       checks: write          # for the unit-test-result check run
@@ -31,19 +33,22 @@ jobs:
           files: |
             **/surefire-reports/TEST-*.xml
 
+      # Upload only when CODECOV_TOKEN is armed (infra/scripts/gh-release-secrets.sh).
+      # When present we enforce (fail_ci_if_error); when absent the step is skipped so
+      # CI stays green until the token lands. (Tokenless upload isn't allowed on this org.)
       - name: Add coverage to PR
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ env.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/*/target/site/jacoco/jacoco.xml
           fail_ci_if_error: true
 
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/test-results-action@v1
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ env.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/**/surefire-reports/TEST-*.xml
 
       - name: Submit Dependency Snapshot
