@@ -1,0 +1,13 @@
+name: notify4j
+title: notify4j
+version: true
+start_page: ROOT:index.adoc
+asciidoc:
+  attributes:
+    notify4j-version: 0.1.0-SNAPSHOT
+    toc: left
+    sectnums: ''
+    author: 'Alexander Mondshain'
+    email: 'alex.mondshain@gmail.com'
+nav:
+  - modules/ROOT/nav.adoc

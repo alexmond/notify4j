@@ -1,0 +1,11 @@
+= Changelog
+
+== Unreleased
+
+* Project scaffold: multi-module Maven layout (`notify4j-parent` + `-bom` + `-core` +
+  `-spring-boot-starter` + `-sample`), Java 17, Spring Boot 4.0.x, `./mvnw` wrapper, Maven Central
+  release pipeline (`central-publishing-maven-plugin` + GPG, `release` profile), CI workflows, and the
+  Antora docs content module.
+* TODO (extraction #2): move the implementation in from `alexmond/builder` (`builder-notifications`),
+  rename `org.alexmond.builder.notify` → `org.alexmond.notify4j`, switch the config prefix to
+  `notify4j.*`, and add the quality gates (spring-javaformat / checkstyle / PMD / JaCoCo coverage).

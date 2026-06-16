@@ -1,0 +1,50 @@
+= notify4j
+:toc: macro
+:icons: font
+
+image:https://img.shields.io/maven-central/v/org.alexmond/notify4j-spring-boot-starter.svg[Maven Central,link=https://central.sonatype.com/artifact/org.alexmond/notify4j-spring-boot-starter]
+image:https://img.shields.io/badge/license-Apache--2.0-blue.svg[License,link=https://www.apache.org/licenses/LICENSE-2.0]
+image:https://github.com/alexmond/notify4j/actions/workflows/maven.yml/badge.svg[Build,link=https://github.com/alexmond/notify4j/actions/workflows/maven.yml]
+image:https://img.shields.io/badge/Java-17%2B-blue.svg[Java 17+]
+image:https://codecov.io/gh/alexmond/notify4j/branch/main/graph/badge.svg[Codecov,link=https://codecov.io/gh/alexmond/notify4j]
+
+An *embeddable, domain-agnostic multi-channel notification library* for Java / Spring Boot. The jar is
+the product — there is no server to run.
+
+== Why notify4j
+
+* *Apprise/shoutrrr-style URL channel config, natively on the JVM* — declare channels as a list of URLs
+  (`slack://…`, `webhook://…`, `pagerduty://…`); no Python/Go sidecar. (No native Java equivalent exists.)
+* *Ops-grade alerting semantics* — status-transition filtering (notify on real changes only), runtime
+  mute, and reminders for unresolved states.
+* *Spring-free core + a thin starter* — use the engine anywhere, or drop in the Spring Boot starter and
+  configure `notify4j.urls`.
+* *Channels included* — Slack, MS Teams, Discord, Telegram, generic webhook, ntfy, PagerDuty, OpsGenie,
+  and email.
+
+[NOTE]
+====
+*Status: scaffold.* Project structure, build, and Maven Central release pipeline are in place; the
+implementation is being extracted from https://github.com/alexmond/builder[alexmond/builder]
+(`builder-notifications`). See that repo's `docs/design/notify4j-extraction-plan.md`.
+====
+
+== Modules
+
+[cols="1,3"]
+|===
+| `notify4j-core` | Spring-free engine: `Notifier<E>` SPI, wrappers, URL parser, facade, channels.
+| `notify4j-spring-boot-starter` | Auto-configuration: binds `notify4j.urls`; email optional.
+| `notify4j-bom` | Dependency BOM — import to align versions and "pick all".
+|===
+
+== Build
+
+[source,shell]
+----
+./mvnw verify              # build + test (add -Pdefault to include the sample)
+----
+
+== License
+
+Apache License 2.0 — see link:LICENSE[LICENSE].

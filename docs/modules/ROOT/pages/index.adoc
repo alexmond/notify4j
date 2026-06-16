@@ -1,0 +1,17 @@
+= notify4j
+
+An embeddable, domain-agnostic multi-channel notification library for Java / Spring Boot — no server
+to run.
+
+== Highlights
+
+* Apprise/shoutrrr-style URL channel config, natively on the JVM (`notify4j.urls`).
+* Status-transition filtering, runtime mute, and reminders.
+* Spring-free core + a thin Spring Boot starter.
+* Channels: Slack, Teams, Discord, Telegram, webhook, ntfy, PagerDuty, OpsGenie, email.
+
+[NOTE]
+====
+Scaffold — implementation being extracted from
+https://github.com/alexmond/builder[alexmond/builder].
+====
