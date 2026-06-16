@@ -10,7 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # for the dependency-graph snapshot submission
+      contents: write        # for the dependency-graph snapshot submission
+      checks: write          # for the unit-test-result check run
+      pull-requests: write   # to comment test results on PRs
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -20,10 +22,14 @@ jobs:
           distribution: 'temurin'
           cache: maven
       - name: Build with Maven
-        run: ./mvnw -B package -Pdefault --no-transfer-progress
+        run: ./mvnw -B verify -Pdefault --no-transfer-progress
 
-      # EnricoMi/publish-unit-test-result-action is added in extraction #2 (it errors when there are
-      # no test files; the scaffold has none yet). Codecov test-results upload below covers it meanwhile.
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            **/surefire-reports/TEST-*.xml
 
       - name: Add coverage to PR
         if: ${{ !cancelled() }}
@@ -31,8 +37,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/*/target/site/jacoco/jacoco.xml
-          # flip to true once JaCoCo + real code land (extraction #2)
-          fail_ci_if_error: false
+          fail_ci_if_error: true
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
