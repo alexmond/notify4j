@@ -10,8 +10,8 @@ to run.
 * Spring-free core + a thin Spring Boot starter.
 * Channels: Slack, Teams, Discord, Telegram, webhook, ntfy, PagerDuty, OpsGenie, email.
 
-[NOTE]
-====
-Scaffold — implementation being extracted from
-https://github.com/alexmond/builder[alexmond/builder].
-====
+== Next
+
+* xref:getting-started.adoc[Getting started] — add the starter and send your first notification.
+* xref:configuration.adoc[Configuration] — every property and the full channel-URL reference.
+* xref:architecture.adoc[Architecture] — the core concepts (adapter, transitions, filters, reminders).

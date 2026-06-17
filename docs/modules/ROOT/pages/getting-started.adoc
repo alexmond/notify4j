@@ -1,0 +1,107 @@
+= Getting started
+
+This walks you through adding notify4j to a Spring Boot app and sending your first
+notification. For the engine without Spring, see xref:architecture.adoc[Architecture].
+
+== Requirements
+
+* Java 17+
+* Spring Boot 3.x or 4.x (for the starter)
+
+== 1. Add the dependency
+
+The starter transitively pulls in `notify4j-core`:
+
+[source,xml,subs="attributes+"]
+----
+<dependency>
+    <groupId>org.alexmond</groupId>
+    <artifactId>notify4j-spring-boot-starter</artifactId>
+    <version>{notify4j-version}</version>
+</dependency>
+----
+
+To align versions across modules, import the BOM in `<dependencyManagement>`:
+
+[source,xml,subs="attributes+"]
+----
+<dependency>
+    <groupId>org.alexmond</groupId>
+    <artifactId>notify4j-bom</artifactId>
+    <version>{notify4j-version}</version>
+    <type>pom</type>
+    <scope>import</scope>
+</dependency>
+----
+
+== 2. Provide a NotificationAdapter
+
+notify4j is domain-agnostic: it never references your event type directly. You supply one
+`NotificationAdapter<E>` bean that maps your event to the three things every channel needs —
+a stable `id` (used to detect status transitions), a `status`, and a human `message`.
+
+[source,java]
+----
+@Bean
+NotificationAdapter<BuildEvent> buildAdapter() {
+    return new NotificationAdapter<>() {
+        public Object id(BuildEvent e)      { return e.getBuildId(); }
+        public String status(BuildEvent e)  { return e.getStatus(); }   // e.g. "FAILED"
+        public String message(BuildEvent e) { return e.describe(); }
+    };
+}
+----
+
+Once this bean exists, the starter auto-configures a `Notifications<BuildEvent>` facade.
+
+== 3. Declare channels
+
+List channels as xref:configuration.adoc#_channel_urls[Apprise-style URLs] in
+`application.yml`:
+
+[source,yaml]
+----
+notify4j:
+  urls:
+    - slack://hooks.slack.com/services/T000/B000/XXXX
+    - pagerduty://<routing-key>?tags=failed
+----
+
+== 4. Send
+
+Inject the facade and call `send`:
+
+[source,java]
+----
+@Service
+class BuildListener {
+
+    private final Notifications<BuildEvent> notifications;
+
+    BuildListener(Notifications<BuildEvent> notifications) {
+        this.notifications = notifications;
+    }
+
+    void onBuild(BuildEvent event) {
+        notifications.send(event);                       // all untagged channels
+        // or route to a subset by tag:
+        notifications.send(event, List.of("failed"));    // only channels tagged "failed"
+    }
+}
+----
+
+By default notify4j only fires on meaningful status *transitions* and skips intermediate
+states (`PENDING`/`RUNNING`/`ASSIGNED`) — so a build that goes `RUNNING -> FAILED` notifies
+once, on `FAILED`. See xref:configuration.adoc#_transition_filtering[transition filtering].
+
+== Try the sample
+
+The `notify4j-sample` module is a runnable Spring Boot app wired exactly as above; its
+`application.yml` ships a commented example of every channel. Build it with:
+
+[source,shell]
+----
+./mvnw -Pdefault -pl notify4j-sample spring-boot:run
+----
+
+With no channels configured it still fans the demo event out to the always-on logging sink.

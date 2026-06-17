@@ -1,1 +1,5 @@
 * xref:index.adoc[Introduction]
+* xref:getting-started.adoc[Getting started]
+* xref:configuration.adoc[Configuration]
+* xref:architecture.adoc[Architecture]
+* xref:contributing.adoc[Contributing]

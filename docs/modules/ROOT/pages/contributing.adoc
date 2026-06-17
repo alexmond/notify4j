@@ -1,0 +1,31 @@
+= Contributing
+
+Contributions are welcome — bug fixes, new channels, docs, and tests. See the
+https://github.com/alexmond/notify4j/blob/main/CONTRIBUTING.adoc[CONTRIBUTING guide] in the
+repository for the full workflow. The essentials:
+
+== Build & test
+
+[source,shell]
+----
+./mvnw verify                       # build + test + all quality gates
+./mvnw verify -Pdefault             # also builds/tests the sample (what CI runs)
+./mvnw spring-javaformat:apply      # auto-fix formatting before committing
+----
+
+== Quality gates
+
+Every `verify` enforces (all fail the build):
+
+* *spring-javaformat* — strict format check; run `spring-javaformat:apply` to fix.
+* *Checkstyle* and *PMD* — config at the repo root (`checkstyle.xml`, `pmd-ruleset.xml`).
+* *JaCoCo* — line coverage must stay above the configured floor; new code generally needs
+tests.
+
+== Adding a channel
+
+. Add a notifier class in `notify4j-core` (extend `AbstractHttpNotifier` for webhook-style
+channels and implement `payload`/`headers`).
+. Register its scheme in `NotifierUrlParser`.
+. Add a payload-shape test (see `ChannelPayloadTest`) pinning the exact wire format.
+. Document the scheme in xref:configuration.adoc#_channel_urls[Configuration].

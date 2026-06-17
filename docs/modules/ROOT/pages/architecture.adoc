@@ -1,0 +1,90 @@
+= Architecture
+
+The design keeps a *Spring-free core* generic over the application's event type `E`, with a
+thin Spring Boot starter on top. The core never references any application domain type — a
+single `NotificationAdapter<E>` bridges it.
+
+== Modules
+
+[cols="1,3",options="header"]
+|===
+| Module | Role
+
+| `notify4j-core`
+| The engine. No Spring dependency; uses the JDK `HttpClient`.
+
+| `notify4j-spring-boot-starter`
+| Auto-configuration binding `notify4j.*`; adds the email channel (the one channel that is
+not a URL).
+
+| `notify4j-bom`
+| Dependency BOM for version alignment.
+
+| `notify4j-sample`
+| Runnable example. Built under the `default` profile only; never released.
+|===
+
+== Core concepts
+
+`Notifier<E>`:: The SPI — `void notify(E)`. Implementations must *never throw*; a failing
+channel must not break the caller.
+
+`NotificationAdapter<E>`:: Supplied by the application. Maps `E` to `id` (stable identity for
+transition tracking), `status`, and `message`. The only place the app's domain type is
+referenced, which is what lets channels stay event-agnostic.
+
+`Notifications<E>`:: The application-facing facade. Holds a fan-out list of channels.
+`send(event)` / `send(event, routeTags)` delivers to every channel whose tags overlap the
+route tags (untagged channels always fire). Two gates sit in front: a runtime-mute filter
+and per-channel tags; each channel additionally applies its own transition filter. Per-channel
+`RuntimeException`s are caught and logged.
+
+`NotificationsFactory<E>`:: Builds `Notifications` facades from a URL list with shared
+defaults. Single-tenant apps get one global facade; multi-tenant apps inject the factory and
+build one facade per tenant (and set `notify4j.global=false`).
+
+`NotifierUrlParser<E>`:: Turns a URL into a channel (notifier + routing tags). Adding a
+channel means adding a case here plus the notifier class.
+
+== Delivery flow
+
+[source]
+----
+send(event, tags)
+  └─ mute gate (FilteringNotifier)        suppress active runtime mutes
+       └─ for each channel matching tags:
+            └─ transition filter           fire only on a real status change
+                 └─ channel notifier       POST the channel-specific payload
+                      (RuntimeException -> caught + logged, never propagated)
+----
+
+== Notifier hierarchy
+
+`AbstractEventNotifier<E>`:: Base: an `enabled` flag, a `shouldNotify` guard, and error
+isolation (`notify` is `final`, catches and logs). Subclasses implement `doNotify`.
+
+`AbstractHttpNotifier<E>`:: Base for webhook-style channels. Configured with *functions* (no
+subclass-per-event); owns the JDK `HttpClient`, applies a transition filter, POSTs JSON.
+Subclasses implement `payload(event)` and optionally `headers()`. Concrete: Slack, Teams,
+Discord, Webhook, Telegram, Ntfy, PagerDuty, OpsGenie.
+
+`AbstractTransitionNotifier<E>`:: Alternative base for non-HTTP notifiers that subclass
+instead of taking functions.
+
+*Wrappers (decorators):* `CompositeNotifier` (fan-out), `FilteringNotifier` (mute),
+`RemindingNotifier` (re-notify entities stuck in a state), `LoggingNotifier` (default sink).
+
+== Using the engine without Spring
+
+The core has no Spring dependency. Build a facade directly:
+
+[source,java]
+----
+var notifications = new Notifications<>(
+        List.of("slack://...", "pagerduty://<key>?tags=failed"),
+        adapter,                 // your NotificationAdapter<E>
+        List.of(),               // extra programmatic notifiers
+        List.of("*:RUNNING"),    // ignore-changes
+        true);                   // include the logging sink
+notifications.send(event);
+----

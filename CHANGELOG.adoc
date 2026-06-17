@@ -2,10 +2,18 @@
 
 == Unreleased
 
-* Project scaffold: multi-module Maven layout (`notify4j-parent` + `-bom` + `-core` +
-  `-spring-boot-starter` + `-sample`), Java 17, Spring Boot 4.0.x, `./mvnw` wrapper, Maven Central
-  release pipeline (`central-publishing-maven-plugin` + GPG, `release` profile), CI workflows, and the
-  Antora docs content module.
-* TODO (extraction #2): move the implementation in from `alexmond/builder` (`builder-notifications`),
-  rename `org.alexmond.builder.notify` → `org.alexmond.notify4j`, switch the config prefix to
-  `notify4j.*`, and add the quality gates (spring-javaformat / checkstyle / PMD / JaCoCo coverage).
+* PagerDuty payload `source` is now `notify4j` (was a leftover `builder` literal).
+* Expanded documentation: getting-started, configuration (full channel-URL reference),
+  architecture, and contributing pages; sample app ships an example `application.yml`.
+* Per-channel payload-shape tests pinning the exact wire format of every channel.
+
+== 0.1.0
+
+* Initial release. Multi-module Maven layout (`notify4j-parent` + `-bom` + `-core` +
+  `-spring-boot-starter` + `-sample`), Java 17, Spring Boot 4.0.x, published to Maven Central.
+* Spring-free core: `Notifier<E>` SPI, `NotificationAdapter<E>`, `Notifications` facade,
+  `NotificationsFactory`, and the Apprise/shoutrrr-style `NotifierUrlParser`.
+* Channels: Slack, Teams, Discord, Telegram, ntfy, generic webhook, PagerDuty, OpsGenie, and
+  email (via the Spring Boot starter).
+* Status-transition filtering, tag-based routing, runtime mute, and reminders.
+* Quality gates: spring-javaformat, Checkstyle, PMD, and JaCoCo coverage.

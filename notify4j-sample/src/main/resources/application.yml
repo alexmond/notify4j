@@ -1,0 +1,44 @@
+# notify4j sample configuration.
+#
+# The sample app declares a NotificationAdapter<String> bean and fires one demo event
+# ("build-42:SUCCESS") on startup. With no urls configured below, the event still fans out
+# to the always-on logging sink, so the sample runs out of the box. Uncomment a channel to
+# see it delivered for real.
+notify4j:
+  # Apprise/shoutrrr-style channel URLs. Scheme picks the channel; an optional +http/+https
+  # suffix picks the transport (default https); ?tags=a,b routes only matching events.
+  urls: []
+    # - slack://hooks.slack.com/services/T000/B000/XXXX
+    # - teams://my-org.webhook.office.com/webhookb2/...
+    # - discord://discord.com/api/webhooks/ID/TOKEN
+    # - telegram://api.telegram.org/<bot-token>/<chat-id>
+    # - ntfy://ntfy.sh/<topic>
+    # - webhook://my-host/notify
+    # - pagerduty://<routing-key>?tags=failed
+    # - opsgenie://<api-key>?tags=failed
+
+  # Status transitions to suppress on every channel (OLD:NEW, * wildcards). The defaults
+  # below mean channels fire on terminal SUCCESS/FAILED, not intermediate states.
+  ignore-changes:
+    - "*:PENDING"
+    - "*:RUNNING"
+    - "*:ASSIGNED"
+
+  # Always include the logging sink (handy when no channels are configured). Default: true.
+  log: true
+
+  # Email is the one non-URL channel: it uses spring.mail.* for SMTP and activates only
+  # when notify4j.email.to is set.
+  # email:
+  #   to:
+  #     - oncall@example.com
+  #   from: notify4j@example.com
+  #   subject-prefix: "[notify4j]"
+
+# SMTP transport for the email channel (only needed if notify4j.email.to is set above).
+# spring:
+#   mail:
+#     host: smtp.example.com
+#     port: 587
+#     username: ...
+#     password: ...

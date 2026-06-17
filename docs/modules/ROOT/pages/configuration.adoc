@@ -1,0 +1,127 @@
+= Configuration
+
+All properties bind under the `notify4j` prefix (`NotificationProperties`).
+
+== Properties
+
+[cols="2,1,3",options="header"]
+|===
+| Property | Default | Description
+
+| `notify4j.urls`
+| _(empty)_
+| Apprise/shoutrrr-style channel URLs (see <<_channel_urls>>). Blank entries are skipped.
+
+| `notify4j.ignore-changes`
+| `*:PENDING`, `*:RUNNING`, `*:ASSIGNED`
+| Status transitions to suppress on every channel (see <<_transition_filtering>>).
+
+| `notify4j.log`
+| `true`
+| Add an always-on logging sink. Handy as a no-config default.
+
+| `notify4j.global`
+| `true`
+| Build the single app-wide facade. Set `false` in multi-tenant apps that build a facade
+per tenant from the injected `NotificationsFactory` instead.
+
+| `notify4j.email.to`
+| _(empty)_
+| Email recipients. The email channel is inactive until this is set.
+
+| `notify4j.email.from`
+| _(spring.mail default)_
+| From address.
+
+| `notify4j.email.subject-prefix`
+| `[builder]`
+| Prepended to the subject line.
+|===
+
+Email is the one channel that is *not* a URL: it is Spring-mail-coupled and its SMTP
+transport comes from the standard `spring.mail.*` properties. It activates only when a
+`JavaMailSender` is present and `notify4j.email.to` is set.
+
+[#_channel_urls]
+== Channel URLs
+
+A channel URL is `scheme[+transport]://endpoint[?tags=a,b]`:
+
+* *scheme* selects the channel (and therefore the payload shape).
+* *transport* (`+http` / `+https`) selects the wire protocol; default `https`. `http` is
+mainly for tests.
+* *`?tags=`* restricts which events reach the channel (see <<_tag_routing>>); it is stripped
+before the endpoint is built.
+
+[cols="1,3",options="header"]
+|===
+| Scheme | Example
+
+| `slack`
+| `slack://hooks.slack.com/services/T000/B000/XXXX`
+
+| `teams`
+| `teams://my-org.webhook.office.com/webhookb2/...`
+
+| `discord`
+| `discord://discord.com/api/webhooks/ID/TOKEN`
+
+| `telegram`
+| `telegram://api.telegram.org/<bot-token>/<chat-id>`
+
+| `ntfy`
+| `ntfy://ntfy.sh/<topic>`
+
+| `webhook`
+| `webhook://my-host/notify` (posts `{"id":…,"status":…,"message":…}`)
+
+| `pagerduty`
+| `pagerduty://<routing-key>` (Events API v2; the event id becomes the `dedup_key`)
+
+| `opsgenie`
+| `opsgenie://<api-key>` (Alert API; the event id becomes the `alias`)
+|===
+
+[#_tag_routing]
+== Tag routing
+
+A channel with no `tags` fires for every event. A *tagged* channel fires only when the
+event is sent with at least one overlapping tag:
+
+[source,yaml]
+----
+notify4j:
+  urls:
+    - slack://...                       # untagged -> every event
+    - pagerduty://<key>?tags=failed     # only events routed with the "failed" tag
+----
+
+[source,java]
+----
+notifications.send(event);                    // Slack only
+notifications.send(event, List.of("failed")); // Slack + PagerDuty
+----
+
+[#_transition_filtering]
+== Transition filtering
+
+notify4j tracks the last status per event `id` and delivers only on a *change*. Patterns in
+`ignore-changes` suppress specific transitions, written `OLD:NEW` with `*` wildcards:
+
+* `*:RUNNING` — never notify when something enters `RUNNING`.
+* `SUCCESS:FAILED` — suppress exactly this transition.
+
+The defaults (`*:PENDING`, `*:RUNNING`, `*:ASSIGNED`) mean channels fire on terminal
+`SUCCESS`/`FAILED` rather than on intermediate states.
+
+== Runtime mute
+
+Beyond static `ignore-changes`, you can mute at runtime via the facade — e.g. silence one
+noisy subject for an hour — and list or remove active mutes:
+
+[source,java]
+----
+notifications.addFilter(filter);   // a NotificationFilter (e.g. ExpiringFilter)
+notifications.filters();           // active, non-expired mutes
+notifications.removeFilter(id);
+----

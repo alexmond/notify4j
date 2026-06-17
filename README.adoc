@@ -22,12 +22,33 @@ the product — there is no server to run.
 * *Channels included* — Slack, MS Teams, Discord, Telegram, generic webhook, ntfy, PagerDuty, OpsGenie,
   and email.
 
-[NOTE]
-====
-*Status: scaffold.* Project structure, build, and Maven Central release pipeline are in place; the
-implementation is being extracted from https://github.com/alexmond/builder[alexmond/builder]
-(`builder-notifications`). See that repo's `docs/design/notify4j-extraction-plan.md`.
-====
+== Get started
+
+Add the Spring Boot starter (pulls in `notify4j-core`):
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.alexmond</groupId>
+    <artifactId>notify4j-spring-boot-starter</artifactId>
+    <version>0.1.0</version>
+</dependency>
+----
+
+Declare a `NotificationAdapter` bean (teaches notify4j how to read your event type) and list
+channels under `notify4j.urls`:
+
+[source,yaml]
+----
+notify4j:
+  urls:
+    - slack://hooks.slack.com/services/T000/B000/XXXX
+    - pagerduty://<routing-key>?tags=failed
+----
+
+The starter auto-configures a `Notifications` facade you inject and call: `notifications.send(event)`.
+See the link:notify4j-sample[`notify4j-sample`] module and the
+https://www.alexmond.org/notify4j/current/index.html[reference docs] for a full walkthrough.
 
 == Modules
 

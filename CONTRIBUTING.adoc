@@ -1,0 +1,81 @@
+= Contributing to notify4j
+:toc:
+
+Thanks for your interest in contributing! notify4j is an embeddable, domain-agnostic
+multi-channel notification library for Java/Spring Boot. We welcome bug fixes, new channels,
+documentation, and tests.
+
+== Ways to contribute
+
+* *Bug fixes* — channel payload/transport issues, transition-filter edge cases.
+* *Channels* — new notification targets (see <<_adding_a_channel>>).
+* *Documentation* — the Antora docs under `docs/`, the README, or examples.
+* *Tests* — raise coverage, pin down channel payload shapes.
+
+To get started, check the
+https://github.com/alexmond/notify4j/issues[Issues] tab, then fork and open a pull request.
+
+== Setting up
+
+[source,shell]
+----
+git clone https://github.com/alexmond/notify4j.git
+cd notify4j
+./mvnw verify
+----
+
+*Requirements:* Java 17+, and the bundled Maven wrapper (`./mvnw`) — no separate Maven
+install needed.
+
+== Build & test
+
+[source,shell]
+----
+./mvnw verify                                          # build + test + all quality gates
+./mvnw verify -Pdefault                                # also builds/tests the sample (CI uses this)
+./mvnw -pl notify4j-core test                          # test one module
+./mvnw -pl notify4j-core test -Dtest=ChannelPayloadTest # a single test class
+./mvnw spring-javaformat:apply                         # auto-fix formatting
+----
+
+== Quality gates
+
+Every `verify` runs these and *fails the build* on any violation:
+
+* *spring-javaformat* (validate phase) — strict format check. Run `spring-javaformat:apply`
+to fix; do not hand-format.
+* *Checkstyle* — `checkstyle.xml` + `checkstyle-suppressions.xml` at the repo root; includes
+test sources.
+* *PMD* — `pmd-ruleset.xml` at the repo root; main sources only.
+* *JaCoCo* — line coverage must stay above the configured floor. New code generally needs
+tests to keep the bundle above it.
+
+Run `./mvnw spring-javaformat:apply` before committing — it is the most common cause of a
+red build on an otherwise good change.
+
+[#_adding_a_channel]
+== Adding a channel
+
+. Add a notifier in `notify4j-core`. For webhook-style channels, extend
+`AbstractHttpNotifier` and implement `payload(event)` (and `headers()` if the channel needs
+auth). The core stays Spring-free — use the JDK `HttpClient`, not Spring's `RestClient`.
+. Register the scheme in `NotifierUrlParser#parse`.
+. Add a payload-shape test in `ChannelPayloadTest` pinning the exact JSON body (and any auth
+header) — this is what prevents silent regressions.
+. Document the scheme in `docs/modules/ROOT/pages/configuration.adoc`.
+
+Keep the core domain-agnostic: a channel must work off the `id`/`status`/`message` from the
+`NotificationAdapter` and must never reference an application's domain type or hardcode an
+app name.
+
+== Submitting changes
+
+. Create a focused branch: `feature/<short-name>` or `bugfix/<issue>`.
+. Keep one logical change per PR; update tests and docs alongside the code.
+. Use clear commit messages referencing any issue (e.g. `Add Mattermost channel #12`).
+. Open the PR against `main` and describe the change.
+
+== License
+
+By contributing you agree your contributions are licensed under the project's
+link:LICENSE[Apache License 2.0].
