@@ -28,7 +28,7 @@ public class PagerDutyNotifier<E> extends AbstractHttpNotifier<E> {
 	protected String payload(E event) {
 		return "{\"routing_key\":" + jsonString(routingKey) + ",\"event_action\":\"trigger\"" + ",\"dedup_key\":"
 				+ jsonValue(idFn.apply(event)) + ",\"payload\":{" + "\"summary\":" + jsonString(messageFn.apply(event))
-				+ ",\"source\":\"builder\"" + ",\"severity\":\"error\"" + ",\"custom_details\":{\"status\":"
+				+ ",\"source\":\"notify4j\"" + ",\"severity\":\"error\"" + ",\"custom_details\":{\"status\":"
 				+ jsonString(statusFn.apply(event)) + "}" + "}}";
 	}
 
