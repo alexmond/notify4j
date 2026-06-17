@@ -25,7 +25,7 @@ Multi-module Maven build (parent inherits from `spring-boot-starter-parent`). Us
 - **spring-javaformat** (`validate` phase) — strict format check. Run `spring-javaformat:apply` to fix; do not hand-format.
 - **Checkstyle** — uses `checkstyle.xml` + `checkstyle-suppressions.xml` at repo root; includes test sources.
 - **PMD** — uses `pmd-ruleset.xml` at repo root; `failOnViolation=true`; main sources only.
-- **JaCoCo** — BUNDLE line coverage must be ≥ **70%** (`jacoco:check`). New code generally needs tests to keep the bundle above the floor.
+- **JaCoCo** — BUNDLE line coverage must be ≥ **80%** (`jacoco:check`). New code generally needs tests to keep the bundle above the floor.
 
 The `release` profile (CI release pipeline only) adds GPG signing + source/javadoc jars + Maven Central publish; never run it locally.
 
