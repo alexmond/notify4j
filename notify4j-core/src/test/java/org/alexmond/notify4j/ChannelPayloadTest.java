@@ -56,25 +56,32 @@ class ChannelPayloadTest {
 
 	@Test
 	void slackPostsText() {
-		new SlackNotifier<Evt>(base() + "/hook", Evt::id, Evt::status, Evt::message, List.of()).notify(evt());
+		new SlackNotifier<Evt>(base() + "/hook", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				List.of())
+			.notify(evt());
 		assertThat(body.get()).isEqualTo("{\"text\":\"build broke\"}");
 	}
 
 	@Test
 	void teamsPostsText() {
-		new TeamsNotifier<Evt>(base() + "/hook", Evt::id, Evt::status, Evt::message, List.of()).notify(evt());
+		new TeamsNotifier<Evt>(base() + "/hook", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				List.of())
+			.notify(evt());
 		assertThat(body.get()).isEqualTo("{\"text\":\"build broke\"}");
 	}
 
 	@Test
 	void discordPostsContent() {
-		new DiscordNotifier<Evt>(base() + "/hook", Evt::id, Evt::status, Evt::message, List.of()).notify(evt());
+		new DiscordNotifier<Evt>(base() + "/hook", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				List.of())
+			.notify(evt());
 		assertThat(body.get()).isEqualTo("{\"content\":\"build broke\"}");
 	}
 
 	@Test
 	void telegramPostsChatIdAndTextToSendMessage() {
-		new TelegramNotifier<Evt>(base(), "tok123", "chat456", Evt::id, Evt::status, Evt::message, List.of())
+		new TelegramNotifier<Evt>(base(), "tok123", "chat456", HttpClientConfig.defaults(), Evt::id, Evt::status,
+				Evt::message, List.of())
 			.notify(evt());
 		assertThat(path.get()).isEqualTo("/bottok123/sendMessage");
 		assertThat(body.get()).isEqualTo("{\"chat_id\":\"chat456\",\"text\":\"build broke\"}");
@@ -82,14 +89,18 @@ class ChannelPayloadTest {
 
 	@Test
 	void ntfyPostsTopicTitleAndMessageToRoot() {
-		new NtfyNotifier<Evt>(base(), "alerts", Evt::id, Evt::status, Evt::message, List.of()).notify(evt());
+		new NtfyNotifier<Evt>(base(), "alerts", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				List.of())
+			.notify(evt());
 		assertThat(path.get()).isEqualTo("/");
 		assertThat(body.get()).isEqualTo("{\"topic\":\"alerts\",\"title\":\"FAILED\",\"message\":\"build broke\"}");
 	}
 
 	@Test
 	void pagerDutyEnqueuesTriggerEnvelope() {
-		new PagerDutyNotifier<Evt>(base(), "rk-1", Evt::id, Evt::status, Evt::message, List.of()).notify(evt());
+		new PagerDutyNotifier<Evt>(base(), "rk-1", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				List.of())
+			.notify(evt());
 		assertThat(path.get()).isEqualTo("/v2/enqueue");
 		assertThat(body.get()).contains("\"routing_key\":\"rk-1\"")
 			.contains("\"event_action\":\"trigger\"")
@@ -102,7 +113,9 @@ class ChannelPayloadTest {
 
 	@Test
 	void opsGenieCreatesAlertWithGenieKeyHeader() {
-		new OpsGenieNotifier<Evt>(base(), "key-9", Evt::id, Evt::status, Evt::message, List.of()).notify(evt());
+		new OpsGenieNotifier<Evt>(base(), "key-9", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				List.of())
+			.notify(evt());
 		assertThat(path.get()).isEqualTo("/v2/alerts");
 		assertThat(auth.get()).isEqualTo("GenieKey key-9");
 		assertThat(body.get()).contains("\"message\":\"build broke\"")

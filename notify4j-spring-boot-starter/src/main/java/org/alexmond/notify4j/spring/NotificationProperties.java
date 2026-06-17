@@ -1,5 +1,6 @@
 package org.alexmond.notify4j.spring;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -41,6 +42,9 @@ public class NotificationProperties {
 	 */
 	private final Email email = new Email();
 
+	/** HTTP client settings shared by the webhook-style channels. */
+	private final Http http = new Http();
+
 	public List<String> getUrls() {
 		return urls;
 	}
@@ -69,6 +73,10 @@ public class NotificationProperties {
 		return email;
 	}
 
+	public Http getHttp() {
+		return http;
+	}
+
 	/** Email channel settings; SMTP transport itself comes from {@code spring.mail.*}. */
 	public static class Email {
 
@@ -79,7 +87,7 @@ public class NotificationProperties {
 		private String from;
 
 		/** Prepended to the subject line. */
-		private String subjectPrefix = "[builder]";
+		private String subjectPrefix = "[notify4j]";
 
 		public List<String> getTo() {
 			return to;
@@ -103,6 +111,37 @@ public class NotificationProperties {
 
 		public void setSubjectPrefix(String subjectPrefix) {
 			this.subjectPrefix = subjectPrefix;
+		}
+
+	}
+
+	/**
+	 * HTTP timeouts for the webhook-style channels (Slack, Teams, Discord, webhook,
+	 * Telegram, ntfy, PagerDuty, OpsGenie). A single {@code HttpClient} is shared across
+	 * them.
+	 */
+	public static class Http {
+
+		/** Connection timeout for outbound channel requests. */
+		private Duration connectTimeout = Duration.ofSeconds(10);
+
+		/** Read (per-request) timeout for outbound channel requests. */
+		private Duration readTimeout = Duration.ofSeconds(10);
+
+		public Duration getConnectTimeout() {
+			return connectTimeout;
+		}
+
+		public void setConnectTimeout(Duration connectTimeout) {
+			this.connectTimeout = connectTimeout;
+		}
+
+		public Duration getReadTimeout() {
+			return readTimeout;
+		}
+
+		public void setReadTimeout(Duration readTimeout) {
+			this.readTimeout = readTimeout;
 		}
 
 	}

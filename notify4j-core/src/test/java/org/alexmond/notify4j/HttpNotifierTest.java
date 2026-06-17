@@ -47,7 +47,8 @@ class HttpNotifierTest {
 
 	@Test
 	void postsJsonPayloadOnStatusTransition() {
-		var notifier = new WebhookNotifier<Evt>(url(), Evt::id, Evt::status, Evt::message, List.of("*:RUNNING"));
+		var notifier = new WebhookNotifier<Evt>(url(), HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				List.of("*:RUNNING"));
 
 		notifier.notify(new Evt(7, "RUNNING", "building")); // filtered (->RUNNING)
 		notifier.notify(new Evt(7, "SUCCESS", "done")); // delivered (RUNNING->SUCCESS)
@@ -60,7 +61,8 @@ class HttpNotifierTest {
 
 	@Test
 	void jsonStringEscapesSpecialCharacters() {
-		var notifier = new WebhookNotifier<Evt>(url(), Evt::id, Evt::status, Evt::message, List.of());
+		var notifier = new WebhookNotifier<Evt>(url(), HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				List.of());
 
 		notifier.notify(new Evt(1, "FAILED", "line1\ntab\there \"quoted\""));
 
@@ -71,7 +73,8 @@ class HttpNotifierTest {
 	@Test
 	void serverErrorIsSwallowedNotPropagated() {
 		responseCode = 500;
-		var notifier = new WebhookNotifier<Evt>(url(), Evt::id, Evt::status, Evt::message, List.of());
+		var notifier = new WebhookNotifier<Evt>(url(), HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				List.of());
 
 		// AbstractEventNotifier logs and swallows — a bad channel must never break the
 		// caller.

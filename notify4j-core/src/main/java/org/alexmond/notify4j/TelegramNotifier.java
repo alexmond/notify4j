@@ -11,9 +11,10 @@ public class TelegramNotifier<E> extends AbstractHttpNotifier<E> {
 
 	private final String chatId;
 
-	public TelegramNotifier(String baseUrl, String token, String chatId, Function<E, Object> idFn,
-			Function<E, String> statusFn, Function<E, String> messageFn, List<String> ignoreChanges) {
-		super(baseUrl + "/bot" + token + "/sendMessage", idFn, statusFn, messageFn, ignoreChanges);
+	public TelegramNotifier(String baseUrl, String token, String chatId, HttpClientConfig httpConfig,
+			Function<E, Object> idFn, Function<E, String> statusFn, Function<E, String> messageFn,
+			List<String> ignoreChanges) {
+		super(baseUrl + "/bot" + token + "/sendMessage", httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 		this.chatId = chatId;
 	}
 

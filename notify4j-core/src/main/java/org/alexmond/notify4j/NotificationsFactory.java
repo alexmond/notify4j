@@ -20,10 +20,18 @@ public class NotificationsFactory<E> {
 
 	private final boolean includeLog;
 
+	private final HttpClientConfig httpConfig;
+
 	public NotificationsFactory(NotificationAdapter<E> adapter, List<String> ignoreChanges, boolean includeLog) {
+		this(adapter, ignoreChanges, includeLog, HttpClientConfig.defaults());
+	}
+
+	public NotificationsFactory(NotificationAdapter<E> adapter, List<String> ignoreChanges, boolean includeLog,
+			HttpClientConfig httpConfig) {
 		this.adapter = adapter;
 		this.ignoreChanges = ignoreChanges;
 		this.includeLog = includeLog;
+		this.httpConfig = httpConfig;
 	}
 
 	/** Build a facade for the given channel URLs (no extra programmatic notifiers). */
@@ -36,7 +44,7 @@ public class NotificationsFactory<E> {
 	 * log sink, app beans).
 	 */
 	public Notifications<E> create(List<String> urls, List<? extends Notifier<E>> extraNotifiers) {
-		return new Notifications<>(urls, adapter, extraNotifiers, ignoreChanges, includeLog);
+		return new Notifications<>(urls, adapter, extraNotifiers, ignoreChanges, includeLog, httpConfig);
 	}
 
 	public NotificationAdapter<E> adapter() {

@@ -6,9 +6,9 @@ import java.util.function.Function;
 /** Posts a message to a Slack incoming webhook ({@code {"text": ...}}). */
 public class SlackNotifier<E> extends AbstractHttpNotifier<E> {
 
-	public SlackNotifier(String webhookUrl, Function<E, Object> idFn, Function<E, String> statusFn,
-			Function<E, String> messageFn, List<String> ignoreChanges) {
-		super(webhookUrl, idFn, statusFn, messageFn, ignoreChanges);
+	public SlackNotifier(String webhookUrl, HttpClientConfig httpConfig, Function<E, Object> idFn,
+			Function<E, String> statusFn, Function<E, String> messageFn, List<String> ignoreChanges) {
+		super(webhookUrl, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 	}
 
 	@Override

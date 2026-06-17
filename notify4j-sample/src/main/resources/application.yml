@@ -27,6 +27,12 @@ notify4j:
   # Always include the logging sink (handy when no channels are configured). Default: true.
   log: true
 
+  # HTTP timeouts shared by the webhook-style channels (one HttpClient is shared across
+  # all of them). Defaults shown.
+  http:
+    connect-timeout: 10s
+    read-timeout: 10s
+
   # Email is the one non-URL channel: it uses spring.mail.* for SMTP and activates only
   # when notify4j.email.to is set.
   # email:

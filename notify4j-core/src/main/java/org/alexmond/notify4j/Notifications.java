@@ -43,6 +43,15 @@ public class Notifications<E> {
 	 */
 	public Notifications(List<String> urls, NotificationAdapter<E> adapter, List<? extends Notifier<E>> extraNotifiers,
 			List<String> ignoreChanges, boolean includeLog) {
+		this(urls, adapter, extraNotifiers, ignoreChanges, includeLog, HttpClientConfig.defaults());
+	}
+
+	/**
+	 * As above, with explicit {@link HttpClientConfig} (shared HTTP client + timeouts)
+	 * for the webhook-style channels.
+	 */
+	public Notifications(List<String> urls, NotificationAdapter<E> adapter, List<? extends Notifier<E>> extraNotifiers,
+			List<String> ignoreChanges, boolean includeLog, HttpClientConfig httpConfig) {
 		if (includeLog) {
 			channels.add(new Channel<>(new LoggingNotifier<>(), Set.of()));
 		}
@@ -52,7 +61,7 @@ public class Notifications<E> {
 			}
 		}
 		if (urls != null) {
-			NotifierUrlParser<E> parser = new NotifierUrlParser<>(adapter, ignoreChanges);
+			NotifierUrlParser<E> parser = new NotifierUrlParser<>(adapter, ignoreChanges, httpConfig);
 			for (String url : urls) {
 				if (url != null && !url.isBlank()) {
 					channels.add(parser.parse(url.trim()));

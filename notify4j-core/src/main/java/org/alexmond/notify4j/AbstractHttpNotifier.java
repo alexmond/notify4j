@@ -2,11 +2,9 @@ package org.alexmond.notify4j;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -16,11 +14,12 @@ import java.util.function.Function;
  * with functions (no subclass-per-event needed): the app supplies how to read the id,
  * status, and human message from its event. Only meaningful status transitions are
  * delivered (see {@link TransitionFilter}). Uses the JDK {@link HttpClient} so this stays
- * Spring-free and library-reusable.
+ * Spring-free and library-reusable; the client and timeouts come from a shared
+ * {@link HttpClientConfig}.
  */
 public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 
-	private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+	private final HttpClientConfig httpConfig;
 
 	private final String url;
 
@@ -32,13 +31,23 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 
 	protected final Function<E, String> messageFn;
 
-	protected AbstractHttpNotifier(String url, Function<E, Object> idFn, Function<E, String> statusFn,
-			Function<E, String> messageFn, List<String> ignoreChanges) {
+	protected AbstractHttpNotifier(String url, HttpClientConfig httpConfig, Function<E, Object> idFn,
+			Function<E, String> statusFn, Function<E, String> messageFn, List<String> ignoreChanges) {
 		this.url = url;
+		this.httpConfig = httpConfig;
 		this.idFn = idFn;
 		this.statusFn = statusFn;
 		this.messageFn = messageFn;
 		this.filter = new TransitionFilter(ignoreChanges);
+	}
+
+	/**
+	 * Convenience for custom channels that don't tune HTTP: uses
+	 * {@link HttpClientConfig#defaults()}.
+	 */
+	protected AbstractHttpNotifier(String url, Function<E, Object> idFn, Function<E, String> statusFn,
+			Function<E, String> messageFn, List<String> ignoreChanges) {
+		this(url, HttpClientConfig.defaults(), idFn, statusFn, messageFn, ignoreChanges);
 	}
 
 	@Override
@@ -50,12 +59,12 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 	protected void doNotify(E event) {
 		HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(url))
 			.header("Content-Type", "application/json")
-			.timeout(Duration.ofSeconds(10))
+			.timeout(httpConfig.requestTimeout())
 			.POST(HttpRequest.BodyPublishers.ofString(payload(event), StandardCharsets.UTF_8));
 		headers().forEach(builder::header);
 		HttpRequest request = builder.build();
 		try {
-			HttpResponse<String> resp = http.send(request, HttpResponse.BodyHandlers.ofString());
+			HttpResponse<String> resp = httpConfig.client().send(request, HttpResponse.BodyHandlers.ofString());
 			if (resp.statusCode() >= 300) {
 				throw new IllegalStateException("HTTP " + resp.statusCode() + " from " + url + ": " + resp.body());
 			}

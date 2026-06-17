@@ -1,6 +1,7 @@
 package org.alexmond.notify4j.spring;
 
 import java.util.List;
+import org.alexmond.notify4j.HttpClientConfig;
 import org.alexmond.notify4j.NotificationAdapter;
 import org.alexmond.notify4j.Notifications;
 import org.alexmond.notify4j.NotificationsFactory;
@@ -43,7 +44,9 @@ public class NotificationsAutoConfiguration {
 	@ConditionalOnMissingBean
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public NotificationsFactory notificationsFactory(NotificationProperties props, NotificationAdapter adapter) {
-		return new NotificationsFactory<>(adapter, props.getIgnoreChanges(), props.isLog());
+		HttpClientConfig httpConfig = HttpClientConfig.of(props.getHttp().getConnectTimeout(),
+				props.getHttp().getReadTimeout());
+		return new NotificationsFactory<>(adapter, props.getIgnoreChanges(), props.isLog(), httpConfig);
 	}
 
 	/**

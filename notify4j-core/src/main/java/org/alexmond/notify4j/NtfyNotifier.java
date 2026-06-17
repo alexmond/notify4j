@@ -12,9 +12,9 @@ public class NtfyNotifier<E> extends AbstractHttpNotifier<E> {
 
 	private final String topic;
 
-	public NtfyNotifier(String baseUrl, String topic, Function<E, Object> idFn, Function<E, String> statusFn,
-			Function<E, String> messageFn, List<String> ignoreChanges) {
-		super(baseUrl, idFn, statusFn, messageFn, ignoreChanges);
+	public NtfyNotifier(String baseUrl, String topic, HttpClientConfig httpConfig, Function<E, Object> idFn,
+			Function<E, String> statusFn, Function<E, String> messageFn, List<String> ignoreChanges) {
+		super(baseUrl, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 		this.topic = topic;
 	}
 

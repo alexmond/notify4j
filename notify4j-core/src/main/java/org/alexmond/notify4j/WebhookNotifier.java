@@ -9,9 +9,9 @@ import java.util.function.Function;
  */
 public class WebhookNotifier<E> extends AbstractHttpNotifier<E> {
 
-	public WebhookNotifier(String url, Function<E, Object> idFn, Function<E, String> statusFn,
-			Function<E, String> messageFn, List<String> ignoreChanges) {
-		super(url, idFn, statusFn, messageFn, ignoreChanges);
+	public WebhookNotifier(String url, HttpClientConfig httpConfig, Function<E, Object> idFn,
+			Function<E, String> statusFn, Function<E, String> messageFn, List<String> ignoreChanges) {
+		super(url, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 	}
 
 	@Override

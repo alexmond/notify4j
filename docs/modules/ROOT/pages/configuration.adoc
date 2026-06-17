@@ -34,9 +34,20 @@ per tenant from the injected `NotificationsFactory` instead.
 | From address.
 
 | `notify4j.email.subject-prefix`
-| `[builder]`
+| `[notify4j]`
 | Prepended to the subject line.
+
+| `notify4j.http.connect-timeout`
+| `10s`
+| Connection timeout for the webhook-style channels.
+
+| `notify4j.http.read-timeout`
+| `10s`
+| Read (per-request) timeout for the webhook-style channels.
 |===
+
+A single `HttpClient` is shared across all webhook-style channels (Slack, Teams, Discord,
+webhook, Telegram, ntfy, PagerDuty, OpsGenie); the timeouts above apply to it.
 
 Email is the one channel that is *not* a URL: it is Spring-mail-coupled and its SMTP
 transport comes from the standard `spring.mail.*` properties. It activates only when a

@@ -17,9 +17,9 @@ public class OpsGenieNotifier<E> extends AbstractHttpNotifier<E> {
 	 * @param endpoint the Alert API base (e.g. {@code https://api.opsgenie.com});
 	 * {@code /v2/alerts} is appended.
 	 */
-	public OpsGenieNotifier(String endpoint, String apiKey, Function<E, Object> idFn, Function<E, String> statusFn,
-			Function<E, String> messageFn, List<String> ignoreChanges) {
-		super(endpoint + "/v2/alerts", idFn, statusFn, messageFn, ignoreChanges);
+	public OpsGenieNotifier(String endpoint, String apiKey, HttpClientConfig httpConfig, Function<E, Object> idFn,
+			Function<E, String> statusFn, Function<E, String> messageFn, List<String> ignoreChanges) {
+		super(endpoint + "/v2/alerts", httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 		this.apiKey = apiKey;
 	}
 

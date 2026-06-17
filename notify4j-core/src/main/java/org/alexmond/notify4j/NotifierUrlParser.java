@@ -43,11 +43,18 @@ public class NotifierUrlParser<E> {
 
 	private final List<String> ignoreChanges;
 
+	private final HttpClientConfig httpConfig;
+
 	public NotifierUrlParser(NotificationAdapter<E> adapter, List<String> ignoreChanges) {
+		this(adapter, ignoreChanges, HttpClientConfig.defaults());
+	}
+
+	public NotifierUrlParser(NotificationAdapter<E> adapter, List<String> ignoreChanges, HttpClientConfig httpConfig) {
 		this.idFn = adapter::id;
 		this.statusFn = adapter::status;
 		this.messageFn = adapter::message;
 		this.ignoreChanges = ignoreChanges;
+		this.httpConfig = httpConfig;
 	}
 
 	/** Parse a single channel URL into a notifier plus its routing tags. */
@@ -77,19 +84,19 @@ public class NotifierUrlParser<E> {
 
 		String endpoint = transport + "://" + rest;
 		Notifier<E> notifier = switch (channel) {
-			case "slack" -> new SlackNotifier<>(endpoint, idFn, statusFn, messageFn, ignoreChanges);
-			case "teams" -> new TeamsNotifier<>(endpoint, idFn, statusFn, messageFn, ignoreChanges);
-			case "discord" -> new DiscordNotifier<>(endpoint, idFn, statusFn, messageFn, ignoreChanges);
-			case "webhook" -> new WebhookNotifier<>(endpoint, idFn, statusFn, messageFn, ignoreChanges);
+			case "slack" -> new SlackNotifier<>(endpoint, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+			case "teams" -> new TeamsNotifier<>(endpoint, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+			case "discord" -> new DiscordNotifier<>(endpoint, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+			case "webhook" -> new WebhookNotifier<>(endpoint, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 			case "telegram" -> telegram(transport, rest, url);
 			case "ntfy" -> ntfy(transport, rest, url);
 			case "pagerduty" -> {
 				String[] ch = credentialAndHost(transport, rest, url, "events.pagerduty.com");
-				yield new PagerDutyNotifier<>(ch[1], ch[0], idFn, statusFn, messageFn, ignoreChanges);
+				yield new PagerDutyNotifier<>(ch[1], ch[0], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 			}
 			case "opsgenie" -> {
 				String[] ch = credentialAndHost(transport, rest, url, "api.opsgenie.com");
-				yield new OpsGenieNotifier<>(ch[1], ch[0], idFn, statusFn, messageFn, ignoreChanges);
+				yield new OpsGenieNotifier<>(ch[1], ch[0], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 			}
 			default ->
 				throw new IllegalArgumentException("unknown notification scheme '" + channel + "' in url: " + url);
@@ -137,7 +144,7 @@ public class NotifierUrlParser<E> {
 			throw new IllegalArgumentException("telegram url needs /<bot-token>/<chat-id>: " + url);
 		}
 		String baseUrl = transport + "://" + authority;
-		return new TelegramNotifier<>(baseUrl, seg[0], seg[1], idFn, statusFn, messageFn, ignoreChanges);
+		return new TelegramNotifier<>(baseUrl, seg[0], seg[1], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 	}
 
 	private Notifier<E> ntfy(String transport, String rest, String url) {
@@ -152,7 +159,7 @@ public class NotifierUrlParser<E> {
 			throw new IllegalArgumentException("ntfy url needs /<topic>: " + url);
 		}
 		String baseUrl = transport + "://" + authority;
-		return new NtfyNotifier<>(baseUrl, topic, idFn, statusFn, messageFn, ignoreChanges);
+		return new NtfyNotifier<>(baseUrl, topic, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 	}
 
 	/**

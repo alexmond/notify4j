@@ -6,9 +6,9 @@ import java.util.function.Function;
 /** Posts to a Microsoft Teams incoming webhook ({@code {"text": ...}}). */
 public class TeamsNotifier<E> extends AbstractHttpNotifier<E> {
 
-	public TeamsNotifier(String webhookUrl, Function<E, Object> idFn, Function<E, String> statusFn,
-			Function<E, String> messageFn, List<String> ignoreChanges) {
-		super(webhookUrl, idFn, statusFn, messageFn, ignoreChanges);
+	public TeamsNotifier(String webhookUrl, HttpClientConfig httpConfig, Function<E, Object> idFn,
+			Function<E, String> statusFn, Function<E, String> messageFn, List<String> ignoreChanges) {
+		super(webhookUrl, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 	}
 
 	@Override

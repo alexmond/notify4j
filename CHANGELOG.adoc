@@ -2,6 +2,9 @@
 
 == Unreleased
 
+* Configurable HTTP timeouts (`notify4j.http.connect-timeout` / `read-timeout`) for the
+  webhook-style channels, which now share a single `HttpClient` instead of one per channel.
+* Email subject prefix now defaults to `[notify4j]` (was a leftover `[builder]` literal).
 * PagerDuty payload `source` is now `notify4j` (was a leftover `builder` literal).
 * Expanded documentation: getting-started, configuration (full channel-URL reference),
   architecture, and contributing pages; sample app ships an example `application.yml`.

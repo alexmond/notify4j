@@ -18,9 +18,9 @@ public class PagerDutyNotifier<E> extends AbstractHttpNotifier<E> {
 	 * @param endpoint the Events API base (e.g. {@code https://events.pagerduty.com});
 	 * {@code /v2/enqueue} is appended.
 	 */
-	public PagerDutyNotifier(String endpoint, String routingKey, Function<E, Object> idFn, Function<E, String> statusFn,
-			Function<E, String> messageFn, List<String> ignoreChanges) {
-		super(endpoint + "/v2/enqueue", idFn, statusFn, messageFn, ignoreChanges);
+	public PagerDutyNotifier(String endpoint, String routingKey, HttpClientConfig httpConfig, Function<E, Object> idFn,
+			Function<E, String> statusFn, Function<E, String> messageFn, List<String> ignoreChanges) {
+		super(endpoint + "/v2/enqueue", httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 		this.routingKey = routingKey;
 	}
 
