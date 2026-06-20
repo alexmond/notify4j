@@ -62,6 +62,7 @@ jobs:
           junit: '**/surefire-reports/TEST-*.xml'
           jacoco: '**/jacoco.xml'
           soft-fail: "true"
+          split-by-module: "true"
 
       - name: Submit Dependency Snapshot
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
