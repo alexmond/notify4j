@@ -53,6 +53,16 @@ jobs:
 
       # Best-effort supply-chain snapshot; needs the repo's Dependency graph feature
       # enabled (Settings -> Code security). Never fail CI on it.
+      - name: Report tests + coverage to UniTrack
+        if: always()
+        uses: alexmond/unitrack/action@v0
+        with:
+          url: ${{ vars.UNITRACK_URL }}
+          token: ${{ secrets.UNITRACK_TOKEN }}
+          junit: '**/surefire-reports/TEST-*.xml'
+          jacoco: '**/jacoco.xml'
+          soft-fail: "true"
+
       - name: Submit Dependency Snapshot
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         continue-on-error: true
