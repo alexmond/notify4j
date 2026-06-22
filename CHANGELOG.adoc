@@ -1,11 +1,16 @@
 = Changelog
 
-== Unreleased
+== 0.2.0 (2026-06-22)
 
 * Configurable HTTP timeouts (`notify4j.http.connect-timeout` / `read-timeout`) for the
   webhook-style channels, which now share a single `HttpClient` instead of one per channel.
+* *Breaking:* the webhook-style channel notifier constructors (`SlackNotifier`,
+  `TeamsNotifier`, `DiscordNotifier`, `WebhookNotifier`, `TelegramNotifier`, `NtfyNotifier`,
+  `PagerDutyNotifier`, `OpsGenieNotifier`) now take an `HttpClientConfig`. The
+  `Notifications` / `NotificationsFactory` facade API is unchanged.
 * Email subject prefix now defaults to `[notify4j]` (was a leftover `[builder]` literal).
 * PagerDuty payload `source` is now `notify4j` (was a leftover `builder` literal).
+* Upgraded to Spring Boot 4.0.7.
 * Expanded documentation: getting-started, configuration (full channel-URL reference),
   architecture, and contributing pages; sample app ships an example `application.yml`.
 * Per-channel payload-shape tests pinning the exact wire format of every channel.

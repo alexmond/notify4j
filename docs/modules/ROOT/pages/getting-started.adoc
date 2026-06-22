@@ -6,7 +6,7 @@ notification. For the engine without Spring, see xref:architecture.adoc[Architec
 == Requirements
 
 * Java 17+
-* Spring Boot 3.x or 4.x (for the starter)
+* Spring Boot 4.x (for the starter)
 
 == 1. Add the dependency
 
