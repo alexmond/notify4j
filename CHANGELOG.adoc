@@ -1,5 +1,17 @@
 = Changelog
 
+== Unreleased
+
+* Asynchronous, non-blocking delivery: the starter wraps each channel in an `AsyncNotifier`
+  and dispatches on a shared pool, so `send` returns immediately and a slow channel can't
+  block the caller or its siblings. *On by default*; disable with `notify4j.async.enabled=false`
+  (configurable pool via `notify4j.async.pool-size`). The core stays synchronous unless an
+  `Executor` is supplied to `Notifications`/`NotificationsFactory`.
+* Transient-failure retry for the webhook-style channels: HTTP 5xx/429 and `IOException` are
+  retried with exponential backoff; other 4xx fail fast. *On by default* in the starter
+  (`notify4j.http.max-attempts=3`, `notify4j.http.retry-backoff=500ms`); core programmatic
+  default remains single-attempt.
+
 == 0.2.0 (2026-06-22)
 
 * Configurable HTTP timeouts (`notify4j.http.connect-timeout` / `read-timeout`) for the

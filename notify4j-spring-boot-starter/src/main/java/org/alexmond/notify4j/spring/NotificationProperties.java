@@ -45,6 +45,9 @@ public class NotificationProperties {
 	/** HTTP client settings shared by the webhook-style channels. */
 	private final Http http = new Http();
 
+	/** Asynchronous (non-blocking) delivery settings. */
+	private final Async async = new Async();
+
 	public List<String> getUrls() {
 		return urls;
 	}
@@ -75,6 +78,10 @@ public class NotificationProperties {
 
 	public Http getHttp() {
 		return http;
+	}
+
+	public Async getAsync() {
+		return async;
 	}
 
 	/** Email channel settings; SMTP transport itself comes from {@code spring.mail.*}. */
@@ -128,6 +135,15 @@ public class NotificationProperties {
 		/** Read (per-request) timeout for outbound channel requests. */
 		private Duration readTimeout = Duration.ofSeconds(10);
 
+		/**
+		 * Total delivery attempts per channel on transient failures
+		 * (5xx/429/IOException); 1 disables retry.
+		 */
+		private int maxAttempts = 3;
+
+		/** Base backoff between retries (doubled each attempt, capped). */
+		private Duration retryBackoff = Duration.ofMillis(500);
+
 		public Duration getConnectTimeout() {
 			return connectTimeout;
 		}
@@ -142,6 +158,53 @@ public class NotificationProperties {
 
 		public void setReadTimeout(Duration readTimeout) {
 			this.readTimeout = readTimeout;
+		}
+
+		public int getMaxAttempts() {
+			return maxAttempts;
+		}
+
+		public void setMaxAttempts(int maxAttempts) {
+			this.maxAttempts = maxAttempts;
+		}
+
+		public Duration getRetryBackoff() {
+			return retryBackoff;
+		}
+
+		public void setRetryBackoff(Duration retryBackoff) {
+			this.retryBackoff = retryBackoff;
+		}
+
+	}
+
+	/**
+	 * Asynchronous delivery: when enabled (default), each channel is dispatched on a
+	 * shared thread pool so {@code send} returns immediately and a slow channel can't
+	 * block the caller or its siblings. Disable for synchronous delivery.
+	 */
+	public static class Async {
+
+		/** Deliver off the caller thread on a shared pool. */
+		private boolean enabled = true;
+
+		/** Size of the shared delivery thread pool. */
+		private int poolSize = 4;
+
+		public boolean isEnabled() {
+			return enabled;
+		}
+
+		public void setEnabled(boolean enabled) {
+			this.enabled = enabled;
+		}
+
+		public int getPoolSize() {
+			return poolSize;
+		}
+
+		public void setPoolSize(int poolSize) {
+			this.poolSize = poolSize;
 		}
 
 	}

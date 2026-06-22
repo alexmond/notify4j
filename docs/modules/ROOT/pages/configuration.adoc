@@ -44,10 +44,33 @@ per tenant from the injected `NotificationsFactory` instead.
 | `notify4j.http.read-timeout`
 | `10s`
 | Read (per-request) timeout for the webhook-style channels.
+
+| `notify4j.http.max-attempts`
+| `3`
+| Delivery attempts per channel on transient failures (HTTP 5xx/429, `IOException`). `1`
+disables retry. Other 4xx fail fast (a retry won't help).
+
+| `notify4j.http.retry-backoff`
+| `500ms`
+| Base backoff between retries; doubled each attempt, capped at 30s.
+
+| `notify4j.async.enabled`
+| `true`
+| Deliver off the caller thread on a shared pool, so a slow channel can't block the caller
+or its siblings. Set `false` for synchronous delivery.
+
+| `notify4j.async.pool-size`
+| `4`
+| Size of the shared async delivery thread pool.
 |===
 
 A single `HttpClient` is shared across all webhook-style channels (Slack, Teams, Discord,
-webhook, Telegram, ntfy, PagerDuty, OpsGenie); the timeouts above apply to it.
+webhook, Telegram, ntfy, PagerDuty, OpsGenie); the timeouts and retry policy above apply to
+it.
+
+By default the starter delivers *asynchronously*: `send` returns immediately and each channel
+fires concurrently on the shared pool, retrying transient HTTP failures. The pool is shut
+down with the application context.
 
 Email is the one channel that is *not* a URL: it is Spring-mail-coupled and its SMTP
 transport comes from the standard `spring.mail.*` properties. It activates only when a

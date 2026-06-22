@@ -1,6 +1,7 @@
 package org.alexmond.notify4j;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 
 /**
  * Builds {@link Notifications} facades from a URL list, applying the same adapter and
@@ -22,16 +23,28 @@ public class NotificationsFactory<E> {
 
 	private final HttpClientConfig httpConfig;
 
+	private final Executor executor;
+
 	public NotificationsFactory(NotificationAdapter<E> adapter, List<String> ignoreChanges, boolean includeLog) {
-		this(adapter, ignoreChanges, includeLog, HttpClientConfig.defaults());
+		this(adapter, ignoreChanges, includeLog, HttpClientConfig.defaults(), null);
 	}
 
 	public NotificationsFactory(NotificationAdapter<E> adapter, List<String> ignoreChanges, boolean includeLog,
 			HttpClientConfig httpConfig) {
+		this(adapter, ignoreChanges, includeLog, httpConfig, null);
+	}
+
+	/**
+	 * As above, with an optional {@link Executor} for asynchronous, non-blocking delivery
+	 * ({@code null} = synchronous). Every facade this factory builds inherits it.
+	 */
+	public NotificationsFactory(NotificationAdapter<E> adapter, List<String> ignoreChanges, boolean includeLog,
+			HttpClientConfig httpConfig, Executor executor) {
 		this.adapter = adapter;
 		this.ignoreChanges = ignoreChanges;
 		this.includeLog = includeLog;
 		this.httpConfig = httpConfig;
+		this.executor = executor;
 	}
 
 	/** Build a facade for the given channel URLs (no extra programmatic notifiers). */
@@ -44,7 +57,7 @@ public class NotificationsFactory<E> {
 	 * log sink, app beans).
 	 */
 	public Notifications<E> create(List<String> urls, List<? extends Notifier<E>> extraNotifiers) {
-		return new Notifications<>(urls, adapter, extraNotifiers, ignoreChanges, includeLog, httpConfig);
+		return new Notifications<>(urls, adapter, extraNotifiers, ignoreChanges, includeLog, httpConfig, executor);
 	}
 
 	public NotificationAdapter<E> adapter() {

@@ -27,11 +27,19 @@ notify4j:
   # Always include the logging sink (handy when no channels are configured). Default: true.
   log: true
 
-  # HTTP timeouts shared by the webhook-style channels (one HttpClient is shared across
-  # all of them). Defaults shown.
+  # HTTP timeouts + retry shared by the webhook-style channels (one HttpClient is shared
+  # across all of them). Defaults shown. Retries transient 5xx/429/IOException; 4xx fail fast.
   http:
     connect-timeout: 10s
     read-timeout: 10s
+    max-attempts: 3        # 1 disables retry
+    retry-backoff: 500ms   # doubled each attempt, capped at 30s
+
+  # Asynchronous delivery: send() returns immediately and channels fire concurrently on a
+  # shared pool, so one slow channel can't block the caller or its siblings. Defaults shown.
+  async:
+    enabled: true
+    pool-size: 4
 
   # Email is the one non-URL channel: it uses spring.mail.* for SMTP and activates only
   # when notify4j.email.to is set.

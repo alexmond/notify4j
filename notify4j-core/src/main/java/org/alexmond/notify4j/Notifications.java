@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
+import java.util.function.UnaryOperator;
 import org.alexmond.notify4j.NotifierUrlParser.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +45,7 @@ public class Notifications<E> {
 	 */
 	public Notifications(List<String> urls, NotificationAdapter<E> adapter, List<? extends Notifier<E>> extraNotifiers,
 			List<String> ignoreChanges, boolean includeLog) {
-		this(urls, adapter, extraNotifiers, ignoreChanges, includeLog, HttpClientConfig.defaults());
+		this(urls, adapter, extraNotifiers, ignoreChanges, includeLog, HttpClientConfig.defaults(), null);
 	}
 
 	/**
@@ -52,23 +54,37 @@ public class Notifications<E> {
 	 */
 	public Notifications(List<String> urls, NotificationAdapter<E> adapter, List<? extends Notifier<E>> extraNotifiers,
 			List<String> ignoreChanges, boolean includeLog, HttpClientConfig httpConfig) {
+		this(urls, adapter, extraNotifiers, ignoreChanges, includeLog, httpConfig, null);
+	}
+
+	/**
+	 * As above, with an optional {@link Executor}: when non-{@code null}, every channel
+	 * is wrapped in an {@link AsyncNotifier} so {@link #send} dispatches off the caller's
+	 * thread and a slow channel can't block the caller or its siblings. {@code null}
+	 * delivers synchronously.
+	 */
+	public Notifications(List<String> urls, NotificationAdapter<E> adapter, List<? extends Notifier<E>> extraNotifiers,
+			List<String> ignoreChanges, boolean includeLog, HttpClientConfig httpConfig, Executor executor) {
+		UnaryOperator<Notifier<E>> wrap = (executor != null) ? (n) -> new AsyncNotifier<>(n, executor) : (n) -> n;
 		if (includeLog) {
-			channels.add(new Channel<>(new LoggingNotifier<>(), Set.of()));
+			channels.add(new Channel<>(wrap.apply(new LoggingNotifier<>()), Set.of()));
 		}
 		if (extraNotifiers != null) {
 			for (Notifier<E> n : extraNotifiers) {
-				channels.add(new Channel<>(n, Set.of()));
+				channels.add(new Channel<>(wrap.apply(n), Set.of()));
 			}
 		}
 		if (urls != null) {
 			NotifierUrlParser<E> parser = new NotifierUrlParser<>(adapter, ignoreChanges, httpConfig);
 			for (String url : urls) {
 				if (url != null && !url.isBlank()) {
-					channels.add(parser.parse(url.trim()));
+					Channel<E> channel = parser.parse(url.trim());
+					channels.add(new Channel<>(wrap.apply(channel.notifier()), channel.tags()));
 				}
 			}
 		}
-		log.info("notifications: {} channel(s) configured", channels.size());
+		log.info("notifications: {} channel(s) configured ({} delivery)", channels.size(),
+				(executor != null) ? "async" : "sync");
 	}
 
 	/**
