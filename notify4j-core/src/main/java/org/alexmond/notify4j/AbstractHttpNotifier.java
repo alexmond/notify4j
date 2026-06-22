@@ -19,6 +19,10 @@ import java.util.function.Function;
  */
 public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 
+	private static final long MAX_BACKOFF_MS = 30_000L;
+
+	private static final int MAX_BACKOFF_SHIFT = 16;
+
 	private final HttpClientConfig httpConfig;
 
 	private final String url;
@@ -63,18 +67,47 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 			.POST(HttpRequest.BodyPublishers.ofString(payload(event), StandardCharsets.UTF_8));
 		headers().forEach(builder::header);
 		HttpRequest request = builder.build();
-		try {
-			HttpResponse<String> resp = httpConfig.client().send(request, HttpResponse.BodyHandlers.ofString());
-			if (resp.statusCode() >= 300) {
-				throw new IllegalStateException("HTTP " + resp.statusCode() + " from " + url + ": " + resp.body());
+		int maxAttempts = httpConfig.maxAttempts();
+		for (int attempt = 1;; attempt++) {
+			try {
+				HttpResponse<String> resp = httpConfig.client().send(request, HttpResponse.BodyHandlers.ofString());
+				int code = resp.statusCode();
+				if (code < 300) {
+					return;
+				}
+				// retry transient server errors / rate limits; 4xx (except 429) won't
+				// succeed on retry, so fail fast.
+				if ((code == 429 || code >= 500) && attempt < maxAttempts) {
+					backoff(attempt);
+					continue;
+				}
+				throw new IllegalStateException("HTTP " + code + " from " + url + ": " + resp.body());
+			}
+			catch (IOException ex) {
+				if (attempt < maxAttempts) {
+					backoff(attempt);
+					continue;
+				}
+				throw new IllegalStateException("failed to POST to " + url + " after " + maxAttempts + " attempt(s)",
+						ex);
+			}
+			catch (InterruptedException ex) {
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException("interrupted posting to " + url, ex);
 			}
 		}
-		catch (IOException ex) {
-			throw new IllegalStateException("failed to POST to " + url, ex);
+	}
+
+	/** Sleep for an exponentially increasing, capped delay before the next retry. */
+	private void backoff(int attempt) {
+		long base = httpConfig.retryBackoff().toMillis();
+		long delay = Math.min(base << Math.min(attempt - 1, MAX_BACKOFF_SHIFT), MAX_BACKOFF_MS);
+		try {
+			Thread.sleep(delay);
 		}
 		catch (InterruptedException ex) {
 			Thread.currentThread().interrupt();
-			throw new IllegalStateException("interrupted posting to " + url, ex);
+			throw new IllegalStateException("interrupted during retry backoff to " + url, ex);
 		}
 	}
 

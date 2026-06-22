@@ -70,6 +70,19 @@ class NotificationsAutoConfigurationTest {
 	}
 
 	@Test
+	void asyncDeliveryIsOnByDefault() {
+		runner.withUserConfiguration(AdapterConfig.class)
+			.run((ctx) -> assertThat(ctx).hasBean("notify4jAsyncExecutor"));
+	}
+
+	@Test
+	void asyncDeliveryCanBeDisabled() {
+		runner.withUserConfiguration(AdapterConfig.class)
+			.withPropertyValues("notify4j.async.enabled=false")
+			.run((ctx) -> assertThat(ctx).doesNotHaveBean("notify4jAsyncExecutor"));
+	}
+
+	@Test
 	void emailChannelWiresInWhenMailSenderAndRecipientPresent() {
 		runner.withUserConfiguration(AdapterConfig.class, MailConfig.class)
 			.withPropertyValues("notify4j.email.to=dev@team.local")

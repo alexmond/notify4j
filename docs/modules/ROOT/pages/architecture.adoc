@@ -72,7 +72,17 @@ Discord, Webhook, Telegram, Ntfy, PagerDuty, OpsGenie.
 instead of taking functions.
 
 *Wrappers (decorators):* `CompositeNotifier` (fan-out), `FilteringNotifier` (mute),
-`RemindingNotifier` (re-notify entities stuck in a state), `LoggingNotifier` (default sink).
+`RemindingNotifier` (re-notify entities stuck in a state), `AsyncNotifier` (deliver off the
+caller thread on an `Executor`), `LoggingNotifier` (default sink).
+
+== Delivery reliability
+
+The webhook-style channels retry transient failures (HTTP 5xx/429, `IOException`) with bounded
+attempts and exponential backoff (see `notify4j.http.max-attempts` / `retry-backoff`); other 4xx
+fail fast. When an `Executor` is supplied (the starter provides one by default), the facade
+wraps every channel in an `AsyncNotifier`, so `send` returns immediately and one hung channel
+can't block the caller or its siblings. Failures stay isolated and logged — a channel never
+throws to the caller.
 
 == Using the engine without Spring
 
