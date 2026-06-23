@@ -9,7 +9,7 @@ notify4j:
   # suffix picks the transport (default https); ?tags=a,b routes only matching events.
   urls: []
     # - slack://hooks.slack.com/services/T000/B000/XXXX
-    # - teams://my-org.webhook.office.com/webhookb2/...
+    # - teams://<power-automate-workflows-webhook>   # legacy O365 connector webhooks retired May 2026
     # - discord://discord.com/api/webhooks/ID/TOKEN
     # - mattermost://my-host/hooks/<key>
     # - rocketchat://my-host/hooks/<id>/<token>

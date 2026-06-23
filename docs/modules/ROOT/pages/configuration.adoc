@@ -95,7 +95,7 @@ before the endpoint is built.
 | `slack://hooks.slack.com/services/T000/B000/XXXX`
 
 | `teams`
-| `teams://my-org.webhook.office.com/webhookb2/...`
+| `teams://<power-automate-workflows-webhook>` (posts a MessageCard — see note below)
 
 | `discord`
 | `discord://discord.com/api/webhooks/ID/TOKEN`
@@ -127,6 +127,14 @@ before the endpoint is built.
 | `opsgenie`
 | `opsgenie://<api-key>` (Alert API; the event id becomes the `alias`)
 |===
+
+[NOTE]
+====
+*Teams:* Microsoft retired the legacy Office 365 *connector* incoming webhooks in May 2026.
+Create a *Power Automate "Workflows"* webhook (e.g. the "Post to a channel when a webhook
+request is received" / "Send webhook alert to a channel" template) and use that URL.
+notify4j posts a MessageCard, which the Workflows endpoint accepts.
+====
 
 [#_tag_routing]
 == Tag routing
