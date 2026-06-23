@@ -31,7 +31,7 @@ Add the Spring Boot starter (pulls in `notify4j-core`):
 <dependency>
     <groupId>org.alexmond</groupId>
     <artifactId>notify4j-spring-boot-starter</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ----
 
