@@ -1,5 +1,14 @@
 = Changelog
 
+== Unreleased
+
+* Optional Micrometer metrics: per-channel `notify4j.notifications` counters tagged
+  `channel` + `outcome` (sent/failed/suppressed), so operators can confirm delivery. The core
+  stays dependency-free via a `NotificationMetrics` SPI; the starter wires a Micrometer-backed
+  implementation automatically when a `MeterRegistry` bean is present (e.g. with Actuator).
+* `AbstractHttpNotifier` gains an overridable `contentType()` and a `formEncode(...)` helper,
+  enabling non-JSON, form-encoded channels (e.g. Pushover, Twilio) to drop in.
+
 == 0.4.0 (2026-06-23)
 
 * *Teams:* now posts a proper MessageCard instead of a bare `{"text":…}`, so it works with

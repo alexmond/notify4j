@@ -14,16 +14,24 @@ public abstract class AbstractEventNotifier<E> implements Notifier<E> {
 
 	private boolean enabled = true;
 
+	private NotificationMetrics metrics = NotificationMetrics.NOOP;
+
 	@Override
 	public final void notify(E event) {
-		if (!enabled || !shouldNotify(event)) {
+		if (!enabled) {
+			return;
+		}
+		if (!shouldNotify(event)) {
+			metrics.recordSuppressed(channelName());
 			return;
 		}
 		try {
 			doNotify(event);
+			metrics.recordSent(channelName());
 		}
 		catch (RuntimeException ex) {
-			log.warn("notifier {} failed for event {}: {}", getClass().getSimpleName(), event, ex.getMessage());
+			metrics.recordFailed(channelName());
+			log.warn("notifier {} failed for event {}: {}", channelName(), event, ex.getMessage());
 		}
 	}
 
@@ -35,12 +43,25 @@ public abstract class AbstractEventNotifier<E> implements Notifier<E> {
 	/** Deliver the notification. May throw; the wrapper swallows and logs. */
 	protected abstract void doNotify(E event);
 
+	/** Name used to tag metrics; the simple class name by default. */
+	protected String channelName() {
+		return getClass().getSimpleName();
+	}
+
 	public boolean isEnabled() {
 		return enabled;
 	}
 
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
+	}
+
+	/**
+	 * Set the metrics sink for delivery outcomes; defaults to
+	 * {@link NotificationMetrics#NOOP}.
+	 */
+	public void setMetrics(NotificationMetrics metrics) {
+		this.metrics = (metrics != null) ? metrics : NotificationMetrics.NOOP;
 	}
 
 }

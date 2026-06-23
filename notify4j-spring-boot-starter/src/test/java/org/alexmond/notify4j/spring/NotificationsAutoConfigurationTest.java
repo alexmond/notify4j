@@ -4,8 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import static org.mockito.Mockito.mock;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;
 import org.alexmond.notify4j.NotificationAdapter;
+import org.alexmond.notify4j.NotificationMetrics;
 import org.alexmond.notify4j.Notifications;
 import org.alexmond.notify4j.NotificationsFactory;
 import org.junit.jupiter.api.Test;
@@ -83,6 +86,33 @@ class NotificationsAutoConfigurationTest {
 	}
 
 	@Test
+	void metricsWireInWithAMeterRegistryAndCountPerChannel() {
+		runner.withUserConfiguration(AdapterConfig.class, MeterRegistryConfig.class).run((ctx) -> {
+			assertThat(ctx).hasSingleBean(NotificationMetrics.class);
+			NotificationMetrics metrics = ctx.getBean(NotificationMetrics.class);
+			metrics.recordSent("Slack");
+			metrics.recordSent("Slack");
+			metrics.recordFailed("Slack");
+
+			MeterRegistry registry = ctx.getBean(MeterRegistry.class);
+			assertThat(registry.get("notify4j.notifications")
+				.tags("channel", "Slack", "outcome", "sent")
+				.counter()
+				.count()).isEqualTo(2.0);
+			assertThat(registry.get("notify4j.notifications")
+				.tags("channel", "Slack", "outcome", "failed")
+				.counter()
+				.count()).isEqualTo(1.0);
+		});
+	}
+
+	@Test
+	void noMetricsBeanWithoutAMeterRegistry() {
+		runner.withUserConfiguration(AdapterConfig.class)
+			.run((ctx) -> assertThat(ctx).doesNotHaveBean(NotificationMetrics.class));
+	}
+
+	@Test
 	void emailChannelWiresInWhenMailSenderAndRecipientPresent() {
 		runner.withUserConfiguration(AdapterConfig.class, MailConfig.class)
 			.withPropertyValues("notify4j.email.to=dev@team.local")
@@ -104,6 +134,16 @@ class NotificationsAutoConfigurationTest {
 		@Bean
 		JavaMailSender mailSender() {
 			return mock(JavaMailSender.class);
+		}
+
+	}
+
+	@Configuration
+	static class MeterRegistryConfig {
+
+		@Bean
+		MeterRegistry meterRegistry() {
+			return new SimpleMeterRegistry();
 		}
 
 	}

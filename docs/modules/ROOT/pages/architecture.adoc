@@ -85,6 +85,11 @@ wraps every channel in an `AsyncNotifier`, so `send` returns immediately and one
 can't block the caller or its siblings. Failures stay isolated and logged — a channel never
 throws to the caller.
 
+Because failures are swallowed there, delivery outcomes are recorded against a dependency-free
+`NotificationMetrics` SPI inside `AbstractEventNotifier` (sent/failed/suppressed, per channel).
+The core defaults to no-op; the starter supplies a Micrometer-backed implementation when a
+`MeterRegistry` is present. See xref:configuration.adoc#_metrics[Metrics].
+
 == Using the engine without Spring
 
 The core has no Spring dependency. Build a facade directly:
