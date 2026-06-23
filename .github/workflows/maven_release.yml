@@ -39,7 +39,12 @@ jobs:
           git config user.email "actions@github.com"
 
       - name: Set Release Version
-        run: ./mvnw versions:set -DnewVersion=${{ github.event.inputs.releaseVersion }} -Pdefault --no-transfer-progress
+        run: |
+          ./mvnw versions:set -DnewVersion=${{ github.event.inputs.releaseVersion }} -Pdefault --no-transfer-progress
+          # Keep the doc install-version markers in sync with the release. The docs hub pins this
+          # tag, so these must match the released version (versions:set only touches the POMs).
+          sed -i -E "s/notify4j-version: .*/notify4j-version: ${{ github.event.inputs.releaseVersion }}/" docs/antora.yml
+          sed -i -E "s#<version>[0-9][0-9.]*(-SNAPSHOT)?</version>#<version>${{ github.event.inputs.releaseVersion }}</version>#" README.adoc
 
       - name: Verify Build
         run: ./mvnw --batch-mode verify -Pdefault --no-transfer-progress
