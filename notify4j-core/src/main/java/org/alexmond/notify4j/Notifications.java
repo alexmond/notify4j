@@ -35,6 +35,13 @@ public class Notifications<E> {
 	});
 
 	/**
+	 * The raw (pre-async-wrap) notifiers, so metrics can be applied to the real channels.
+	 */
+	private final List<Notifier<E>> sinks = new CopyOnWriteArrayList<>();
+
+	private NotificationMetrics metrics = NotificationMetrics.NOOP;
+
+	/**
 	 * @param urls channel URLs (see {@link NotifierUrlParser}); {@code null}/blank
 	 * entries skipped
 	 * @param adapter reads id/status/message from the event
@@ -67,10 +74,13 @@ public class Notifications<E> {
 			List<String> ignoreChanges, boolean includeLog, HttpClientConfig httpConfig, Executor executor) {
 		UnaryOperator<Notifier<E>> wrap = (executor != null) ? (n) -> new AsyncNotifier<>(n, executor) : (n) -> n;
 		if (includeLog) {
-			channels.add(new Channel<>(wrap.apply(new LoggingNotifier<>()), Set.of()));
+			Notifier<E> sink = new LoggingNotifier<>();
+			sinks.add(sink);
+			channels.add(new Channel<>(wrap.apply(sink), Set.of()));
 		}
 		if (extraNotifiers != null) {
 			for (Notifier<E> n : extraNotifiers) {
+				sinks.add(n);
 				channels.add(new Channel<>(wrap.apply(n), Set.of()));
 			}
 		}
@@ -79,7 +89,9 @@ public class Notifications<E> {
 			for (String url : urls) {
 				if (url != null && !url.isBlank()) {
 					Channel<E> channel = parser.parse(url.trim());
-					channels.add(new Channel<>(wrap.apply(channel.notifier()), channel.tags()));
+					Notifier<E> raw = channel.notifier();
+					sinks.add(raw);
+					channels.add(new Channel<>(wrap.apply(raw), channel.tags()));
 				}
 			}
 		}
@@ -121,7 +133,25 @@ public class Notifications<E> {
 	 * {@link AsyncNotifier} first if that matters.
 	 */
 	public void addNotifier(Notifier<E> notifier) {
+		sinks.add(notifier);
+		if (notifier instanceof AbstractEventNotifier<?> aen) {
+			aen.setMetrics(metrics);
+		}
 		channels.add(new Channel<>(notifier, Set.of()));
+	}
+
+	/**
+	 * Set the metrics sink for per-channel delivery outcomes, propagating it to every
+	 * channel. The starter wires a Micrometer-backed implementation when a registry is
+	 * present; otherwise this stays {@link NotificationMetrics#NOOP}.
+	 */
+	public void setMetrics(NotificationMetrics metrics) {
+		this.metrics = (metrics != null) ? metrics : NotificationMetrics.NOOP;
+		for (Notifier<E> sink : sinks) {
+			if (sink instanceof AbstractEventNotifier<?> aen) {
+				aen.setMetrics(this.metrics);
+			}
+		}
 	}
 
 	/** Add (or replace, by id) a runtime mute. */

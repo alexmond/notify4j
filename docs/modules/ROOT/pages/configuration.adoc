@@ -179,3 +179,21 @@ notifications.addFilter(filter);   // a NotificationFilter (e.g. ExpiringFilter)
 notifications.filters();           // active, non-expired mutes
 notifications.removeFilter(id);
 ----
+
+== Metrics
+
+When `micrometer-core` is on the classpath and a `MeterRegistry` bean exists (e.g. with Spring
+Boot Actuator), the starter records a counter per channel and outcome — no configuration
+needed:
+
+[cols="2,3",options="header"]
+|===
+| Meter | Tags
+
+| `notify4j.notifications`
+| `channel` (e.g. `SlackNotifier`), `outcome` (`sent` / `failed` / `suppressed`)
+|===
+
+`sent` = delivered, `failed` = gave up after retries, `suppressed` = filtered out (e.g. not a
+real transition). The core itself has no metrics dependency; it records against a
+`NotificationMetrics` SPI that defaults to no-op when no registry is present.

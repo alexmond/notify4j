@@ -25,6 +25,8 @@ public class NotificationsFactory<E> {
 
 	private final Executor executor;
 
+	private final NotificationMetrics metrics;
+
 	public NotificationsFactory(NotificationAdapter<E> adapter, List<String> ignoreChanges, boolean includeLog) {
 		this(adapter, ignoreChanges, includeLog, HttpClientConfig.defaults(), null);
 	}
@@ -40,11 +42,21 @@ public class NotificationsFactory<E> {
 	 */
 	public NotificationsFactory(NotificationAdapter<E> adapter, List<String> ignoreChanges, boolean includeLog,
 			HttpClientConfig httpConfig, Executor executor) {
+		this(adapter, ignoreChanges, includeLog, httpConfig, executor, null);
+	}
+
+	/**
+	 * As above, with an optional {@link NotificationMetrics} sink ({@code null} = no
+	 * metrics) applied to every facade this factory builds.
+	 */
+	public NotificationsFactory(NotificationAdapter<E> adapter, List<String> ignoreChanges, boolean includeLog,
+			HttpClientConfig httpConfig, Executor executor, NotificationMetrics metrics) {
 		this.adapter = adapter;
 		this.ignoreChanges = ignoreChanges;
 		this.includeLog = includeLog;
 		this.httpConfig = httpConfig;
 		this.executor = executor;
+		this.metrics = (metrics != null) ? metrics : NotificationMetrics.NOOP;
 	}
 
 	/** Build a facade for the given channel URLs (no extra programmatic notifiers). */
@@ -57,7 +69,10 @@ public class NotificationsFactory<E> {
 	 * log sink, app beans).
 	 */
 	public Notifications<E> create(List<String> urls, List<? extends Notifier<E>> extraNotifiers) {
-		return new Notifications<>(urls, adapter, extraNotifiers, ignoreChanges, includeLog, httpConfig, executor);
+		Notifications<E> notifications = new Notifications<>(urls, adapter, extraNotifiers, ignoreChanges, includeLog,
+				httpConfig, executor);
+		notifications.setMetrics(metrics);
+		return notifications;
 	}
 
 	public NotificationAdapter<E> adapter() {

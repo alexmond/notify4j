@@ -5,8 +5,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.alexmond.notify4j.HttpClientConfig;
 import org.alexmond.notify4j.NotificationAdapter;
+import org.alexmond.notify4j.NotificationMetrics;
 import org.alexmond.notify4j.Notifications;
 import org.alexmond.notify4j.NotificationsFactory;
 import org.alexmond.notify4j.Notifier;
@@ -49,12 +51,13 @@ public class NotificationsAutoConfiguration {
 	@ConditionalOnMissingBean
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public NotificationsFactory notificationsFactory(NotificationProperties props, NotificationAdapter adapter,
-			@Qualifier("notify4jAsyncExecutor") ObjectProvider<ExecutorService> asyncExecutor) {
+			@Qualifier("notify4jAsyncExecutor") ObjectProvider<ExecutorService> asyncExecutor,
+			ObjectProvider<NotificationMetrics> metrics) {
 		NotificationProperties.Http http = props.getHttp();
 		HttpClientConfig httpConfig = HttpClientConfig.of(http.getConnectTimeout(), http.getReadTimeout(),
 				http.getMaxAttempts(), http.getRetryBackoff());
 		return new NotificationsFactory<>(adapter, props.getIgnoreChanges(), props.isLog(), httpConfig,
-				asyncExecutor.getIfAvailable());
+				asyncExecutor.getIfAvailable(), metrics.getIfAvailable());
 	}
 
 	/**
@@ -115,6 +118,25 @@ public class NotificationsAutoConfiguration {
 			NotificationProperties.Email email = props.getEmail();
 			return new EmailNotifier<>(mailSender, email.getFrom(), email.getTo(), email.getSubjectPrefix(),
 					adapter::id, adapter::status, adapter::message, props.getIgnoreChanges());
+		}
+
+	}
+
+	/**
+	 * Per-channel delivery metrics (sent/failed/suppressed), recorded to Micrometer.
+	 * Active only when {@code micrometer-core} is on the classpath and a
+	 * {@link MeterRegistry} bean exists (e.g. with Spring Boot Actuator). The factory
+	 * folds it into every facade.
+	 */
+	@Configuration(proxyBeanMethods = false)
+	@ConditionalOnClass(MeterRegistry.class)
+	static class MetricsConfiguration {
+
+		@Bean
+		@ConditionalOnBean({ NotificationAdapter.class, MeterRegistry.class })
+		@ConditionalOnMissingBean
+		NotificationMetrics notify4jMetrics(MeterRegistry registry) {
+			return new MicrometerNotificationMetrics(registry);
 		}
 
 	}
