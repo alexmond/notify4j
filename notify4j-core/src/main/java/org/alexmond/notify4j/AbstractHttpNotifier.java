@@ -2,6 +2,7 @@ package org.alexmond.notify4j;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
@@ -62,7 +63,7 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 	@Override
 	protected void doNotify(E event) {
 		HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(url))
-			.header("Content-Type", "application/json")
+			.header("Content-Type", contentType())
 			.timeout(httpConfig.requestTimeout())
 			.POST(HttpRequest.BodyPublishers.ofString(payload(event), StandardCharsets.UTF_8));
 		headers().forEach(builder::header);
@@ -120,6 +121,35 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 	 */
 	protected Map<String, String> headers() {
 		return Map.of();
+	}
+
+	/**
+	 * The {@code Content-Type} of the POST body; {@code application/json} by default.
+	 * Override (with a {@link #formEncode} body) for form-encoded channels such as
+	 * Pushover or Twilio.
+	 */
+	protected String contentType() {
+		return "application/json";
+	}
+
+	/**
+	 * Encode fields as an {@code application/x-www-form-urlencoded} body. Null values are
+	 * skipped.
+	 */
+	protected static String formEncode(Map<String, String> fields) {
+		StringBuilder sb = new StringBuilder();
+		for (Map.Entry<String, String> field : fields.entrySet()) {
+			if (field.getValue() == null) {
+				continue;
+			}
+			if (sb.length() > 0) {
+				sb.append('&');
+			}
+			sb.append(URLEncoder.encode(field.getKey(), StandardCharsets.UTF_8))
+				.append('=')
+				.append(URLEncoder.encode(field.getValue(), StandardCharsets.UTF_8));
+		}
+		return sb.toString();
 	}
 
 	/** JSON-encode a string value (with surrounding quotes). */
