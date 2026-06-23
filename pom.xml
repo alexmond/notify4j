@@ -133,7 +133,10 @@
                     <configuration>
                         <publishingServerId>central</publishingServerId>
                         <autoPublish>true</autoPublish>
-                        <waitUntil>published</waitUntil>
+                        <!-- Wait through Central's validation gate (which catches real failures) but
+                             not the slow async publish step, whose poll window timed out on 0.4.0
+                             even though publishing succeeded. autoPublish still publishes once validated. -->
+                        <waitUntil>validated</waitUntil>
                     </configuration>
                 </plugin>
                 <plugin>
