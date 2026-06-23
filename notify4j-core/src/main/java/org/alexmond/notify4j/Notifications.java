@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
  *
  * <p>
  * Spring-free: the {@code spring-boot-starter} wires one of these as a bean from
- * {@code notifications.urls}.
+ * {@code notify4j.urls}.
  * </p>
  *
  * @param <E> the application's event type
@@ -114,7 +114,12 @@ public class Notifications<E> {
 		}
 	}
 
-	/** Register an additional untagged notifier at runtime. */
+	/**
+	 * Register an additional untagged notifier at runtime. Unlike the channels built at
+	 * construction, a notifier added here is <em>not</em> wrapped for asynchronous
+	 * delivery, so it runs on the {@link #send} caller's thread; wrap it in an
+	 * {@link AsyncNotifier} first if that matters.
+	 */
 	public void addNotifier(Notifier<E> notifier) {
 		channels.add(new Channel<>(notifier, Set.of()));
 	}
