@@ -6,20 +6,25 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Configuration for the notification subsystem, bound from {@code notifications.*}.
+ * Configuration for the notification subsystem, bound from {@code notify4j.*}.
  *
  * <p>
  * Channels are declared as Apprise/shoutrrr-style URLs, e.g.
  * </p>
  * <pre>
- * notifications:
+ * notify4j:
  *   urls:
  *     - slack://hooks.slack.com/services/T000/B000/XXXX
  *     - telegram://api.telegram.org/&lt;bot-token&gt;/&lt;chat-id&gt;
+ *   http:
+ *     max-attempts: 3        # retry transient 5xx/429/IOException
+ *   async:
+ *     enabled: true          # deliver off the caller thread
  * </pre>
  *
  * The default {@code ignore-changes} suppresses transitions into non-terminal states, so
- * channels fire on terminal SUCCESS/FAILED rather than PENDING/RUNNING.
+ * channels fire on terminal SUCCESS/FAILED rather than PENDING/RUNNING. See also
+ * {@link Http} (timeouts + retry) and {@link Async} (non-blocking delivery).
  */
 @ConfigurationProperties("notify4j")
 public class NotificationProperties {

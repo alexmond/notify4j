@@ -94,6 +94,11 @@ By default notify4j only fires on meaningful status *transitions* and skips inte
 states (`PENDING`/`RUNNING`/`ASSIGNED`) — so a build that goes `RUNNING -> FAILED` notifies
 once, on `FAILED`. See xref:configuration.adoc#_transition_filtering[transition filtering].
 
+In the starter, `send` is also *non-blocking by default*: each channel is delivered on a
+shared pool (so a slow channel can't block the caller or its siblings) and transient HTTP
+failures are retried. Both are configurable — see xref:configuration.adoc[Configuration]
+(`notify4j.async.*`, `notify4j.http.max-attempts`).
+
 == Try the sample
 
 The `notify4j-sample` module is a runnable Spring Boot app wired exactly as above; its
