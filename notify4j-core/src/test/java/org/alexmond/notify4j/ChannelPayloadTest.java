@@ -63,11 +63,12 @@ class ChannelPayloadTest {
 	}
 
 	@Test
-	void teamsPostsText() {
+	void teamsPostsMessageCard() {
 		new TeamsNotifier<Evt>(base() + "/hook", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
 				List.of())
 			.notify(evt());
-		assertThat(body.get()).isEqualTo("{\"text\":\"build broke\"}");
+		assertThat(body.get()).isEqualTo("{\"@type\":\"MessageCard\",\"@context\":\"https://schema.org/extensions\","
+				+ "\"summary\":\"FAILED\",\"title\":\"FAILED\",\"text\":\"build broke\"}");
 	}
 
 	@Test

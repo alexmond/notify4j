@@ -2,6 +2,9 @@
 
 == Unreleased
 
+* *Teams:* now posts a proper MessageCard instead of a bare `{"text":…}`, so it works with
+  Power Automate *Workflows* webhooks — the legacy Office 365 connector webhooks were retired
+  by Microsoft in May 2026. Point the `teams://` URL at a Workflows webhook.
 * New channels: Mattermost (`mattermost://`), Rocket.Chat (`rocketchat://`), Google Chat
   (`googlechat://`), and Gotify (`gotify://`) — completing parity with shoutrrr's webhook-style
   services.
