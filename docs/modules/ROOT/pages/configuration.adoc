@@ -100,6 +100,18 @@ before the endpoint is built.
 | `discord`
 | `discord://discord.com/api/webhooks/ID/TOKEN`
 
+| `mattermost`
+| `mattermost://my-host/hooks/<key>` (incoming webhook)
+
+| `rocketchat`
+| `rocketchat://my-host/hooks/<id>/<token>` (incoming webhook)
+
+| `googlechat`
+| `googlechat://chat.googleapis.com/v1/spaces/<space>/messages?key=<k>&token=<t>`
+
+| `gotify`
+| `gotify://my-host/<app-token>` (self-hosted push)
+
 | `telegram`
 | `telegram://api.telegram.org/<bot-token>/<chat-id>`
 

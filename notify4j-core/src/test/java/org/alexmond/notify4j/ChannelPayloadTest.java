@@ -79,6 +79,39 @@ class ChannelPayloadTest {
 	}
 
 	@Test
+	void mattermostPostsText() {
+		new MattermostNotifier<Evt>(base() + "/hooks/k", HttpClientConfig.defaults(), Evt::id, Evt::status,
+				Evt::message, List.of())
+			.notify(evt());
+		assertThat(body.get()).isEqualTo("{\"text\":\"build broke\"}");
+	}
+
+	@Test
+	void rocketChatPostsText() {
+		new RocketChatNotifier<Evt>(base() + "/hooks/i/t", HttpClientConfig.defaults(), Evt::id, Evt::status,
+				Evt::message, List.of())
+			.notify(evt());
+		assertThat(body.get()).isEqualTo("{\"text\":\"build broke\"}");
+	}
+
+	@Test
+	void googleChatPostsText() {
+		new GoogleChatNotifier<Evt>(base() + "/v1/spaces/s/messages", HttpClientConfig.defaults(), Evt::id, Evt::status,
+				Evt::message, List.of())
+			.notify(evt());
+		assertThat(body.get()).isEqualTo("{\"text\":\"build broke\"}");
+	}
+
+	@Test
+	void gotifyPostsTitleAndMessageToMessageEndpoint() {
+		new GotifyNotifier<Evt>(base(), "apptok", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				List.of())
+			.notify(evt());
+		assertThat(path.get()).isEqualTo("/message");
+		assertThat(body.get()).isEqualTo("{\"title\":\"FAILED\",\"message\":\"build broke\"}");
+	}
+
+	@Test
 	void telegramPostsChatIdAndTextToSendMessage() {
 		new TelegramNotifier<Evt>(base(), "tok123", "chat456", HttpClientConfig.defaults(), Evt::id, Evt::status,
 				Evt::message, List.of())
