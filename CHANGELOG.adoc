@@ -2,6 +2,9 @@
 
 == Unreleased
 
+* New channels: Mattermost (`mattermost://`), Rocket.Chat (`rocketchat://`), Google Chat
+  (`googlechat://`), and Gotify (`gotify://`) — completing parity with shoutrrr's webhook-style
+  services.
 * Asynchronous, non-blocking delivery: the starter wraps each channel in an `AsyncNotifier`
   and dispatches on a shared pool, so `send` returns immediately and a slow channel can't
   block the caller or its siblings. *On by default*; disable with `notify4j.async.enabled=false`

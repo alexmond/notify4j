@@ -42,6 +42,26 @@ class NotifierUrlParserTest {
 		assertThat(notifier("ntfy://ntfy.sh/my-topic")).isInstanceOf(NtfyNotifier.class);
 		assertThat(notifier("pagerduty://routing-key-123")).isInstanceOf(PagerDutyNotifier.class);
 		assertThat(notifier("opsgenie://api-key-abc")).isInstanceOf(OpsGenieNotifier.class);
+		assertThat(notifier("mattermost://my-host/hooks/k")).isInstanceOf(MattermostNotifier.class);
+		assertThat(notifier("rocketchat://my-host/hooks/i/t")).isInstanceOf(RocketChatNotifier.class);
+		assertThat(notifier("googlechat://chat.googleapis.com/v1/spaces/s/messages"))
+			.isInstanceOf(GoogleChatNotifier.class);
+		assertThat(notifier("gotify://my-host/app-token")).isInstanceOf(GotifyNotifier.class);
+	}
+
+	@Test
+	void googleChatKeepsKeyAndTokenQueryParams() {
+		// non-tags query params survive; ?tags= is stripped
+		NotifierUrlParser.Channel<Event> ch = parser
+			.parse("googlechat://chat.googleapis.com/v1/spaces/s/messages?key=K&token=T&tags=ops");
+		assertThat(ch.tags()).containsExactly("ops");
+		assertThat(ch.notifier()).isInstanceOf(GoogleChatNotifier.class);
+	}
+
+	@Test
+	void gotifyRequiresAnAppToken() {
+		assertThatThrownBy(() -> parser.parse("gotify://my-host/")).isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("app-token");
 	}
 
 	@Test

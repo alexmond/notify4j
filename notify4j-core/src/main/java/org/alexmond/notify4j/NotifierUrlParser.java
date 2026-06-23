@@ -21,9 +21,13 @@ import java.util.function.Function;
  *   slack://hooks.slack.com/services/T000/B000/XXXX
  *   teams+http://127.0.0.1:8080/hook
  *   discord://discord.com/api/webhooks/ID/TOKEN
+ *   mattermost://my-host/hooks/&lt;key&gt;
+ *   rocketchat://my-host/hooks/&lt;id&gt;/&lt;token&gt;
+ *   googlechat://chat.googleapis.com/v1/spaces/&lt;space&gt;/messages?key=&lt;k&gt;&amp;token=&lt;t&gt;
  *   webhook://my-host/notify
  *   telegram://api.telegram.org/&lt;bot-token&gt;/&lt;chat-id&gt;
  *   ntfy://ntfy.sh/&lt;topic&gt;
+ *   gotify://my-host/&lt;app-token&gt;
  *   pagerduty://&lt;routing-key&gt;?tags=failed
  *   opsgenie://&lt;api-key&gt;?tags=failed
  * </pre>
@@ -87,9 +91,16 @@ public class NotifierUrlParser<E> {
 			case "slack" -> new SlackNotifier<>(endpoint, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 			case "teams" -> new TeamsNotifier<>(endpoint, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 			case "discord" -> new DiscordNotifier<>(endpoint, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+			case "mattermost" ->
+				new MattermostNotifier<>(endpoint, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+			case "rocketchat" ->
+				new RocketChatNotifier<>(endpoint, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+			case "googlechat" ->
+				new GoogleChatNotifier<>(endpoint, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 			case "webhook" -> new WebhookNotifier<>(endpoint, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 			case "telegram" -> telegram(transport, rest, url);
 			case "ntfy" -> ntfy(transport, rest, url);
+			case "gotify" -> gotify(transport, rest, url);
 			case "pagerduty" -> {
 				String[] ch = credentialAndHost(transport, rest, url, "events.pagerduty.com");
 				yield new PagerDutyNotifier<>(ch[1], ch[0], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
@@ -160,6 +171,21 @@ public class NotifierUrlParser<E> {
 		}
 		String baseUrl = transport + "://" + authority;
 		return new NtfyNotifier<>(baseUrl, topic, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+	}
+
+	private Notifier<E> gotify(String transport, String rest, String url) {
+		URI u = URI.create(transport + "://" + rest);
+		String authority = u.getAuthority();
+		String path = u.getPath();
+		if (authority == null || path == null) {
+			throw new IllegalArgumentException("invalid gotify url: " + url);
+		}
+		String token = path.replaceFirst("^/", "").split("/")[0];
+		if (token.isBlank()) {
+			throw new IllegalArgumentException("gotify url needs /<app-token>: " + url);
+		}
+		String baseUrl = transport + "://" + authority;
+		return new GotifyNotifier<>(baseUrl, token, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 	}
 
 	/**

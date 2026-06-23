@@ -48,7 +48,7 @@ The whole design keeps a **Spring-free core** generic over the application's eve
 
 ### Notifier class hierarchy
 - **`AbstractEventNotifier<E>`** — base: `enabled` flag, `shouldNotify` guard, and error isolation (`notify` is `final`, catches and logs). Subclasses implement `doNotify`.
-- **`AbstractHttpNotifier<E>`** — base for webhook-style channels. Configured with *functions* (no subclass-per-event); owns the JDK `HttpClient`, applies a `TransitionFilter`, POSTs JSON. Subclasses implement `payload(event)` and optionally `headers()`. Concrete: `Slack`, `Teams`, `Discord`, `Webhook`, `Telegram`, `Ntfy`, `PagerDuty`, `OpsGenie`.
+- **`AbstractHttpNotifier<E>`** — base for webhook-style channels. Configured with *functions* (no subclass-per-event); owns the JDK `HttpClient`, applies a `TransitionFilter`, POSTs JSON. Subclasses implement `payload(event)` and optionally `headers()`. Concrete: `Slack`, `Teams`, `Discord`, `Mattermost`, `RocketChat`, `GoogleChat`, `Webhook`, `Telegram`, `Ntfy`, `Gotify`, `PagerDuty`, `OpsGenie`.
 - **`AbstractTransitionNotifier<E>`** — alternative base for non-HTTP notifiers that subclass instead of taking functions; delegates gating to a `TransitionFilter` via `entityId`/`status`.
 - **Wrappers (decorators):** `CompositeNotifier` (fan-out), `FilteringNotifier` (mute), `RemindingNotifier` (re-notify for entities stuck in a state — `checkReminders(Instant)` is the testable core, `start()`/`stop()` schedule it on a daemon thread), `LoggingNotifier` (always-on default sink).
 

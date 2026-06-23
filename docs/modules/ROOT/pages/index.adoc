@@ -8,7 +8,8 @@ to run.
 * Apprise/shoutrrr-style URL channel config, natively on the JVM (`notify4j.urls`).
 * Status-transition filtering, runtime mute, and reminders.
 * Spring-free core + a thin Spring Boot starter.
-* Channels: Slack, Teams, Discord, Telegram, webhook, ntfy, PagerDuty, OpsGenie, email.
+* Channels: Slack, Teams, Discord, Mattermost, Rocket.Chat, Google Chat, Telegram, webhook,
+  ntfy, Gotify, PagerDuty, OpsGenie, email.
 
 == Next
 

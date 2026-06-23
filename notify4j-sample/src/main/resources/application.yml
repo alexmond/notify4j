@@ -11,8 +11,12 @@ notify4j:
     # - slack://hooks.slack.com/services/T000/B000/XXXX
     # - teams://my-org.webhook.office.com/webhookb2/...
     # - discord://discord.com/api/webhooks/ID/TOKEN
+    # - mattermost://my-host/hooks/<key>
+    # - rocketchat://my-host/hooks/<id>/<token>
+    # - googlechat://chat.googleapis.com/v1/spaces/<space>/messages?key=<k>&token=<t>
     # - telegram://api.telegram.org/<bot-token>/<chat-id>
     # - ntfy://ntfy.sh/<topic>
+    # - gotify://my-host/<app-token>
     # - webhook://my-host/notify
     # - pagerduty://<routing-key>?tags=failed
     # - opsgenie://<api-key>?tags=failed
