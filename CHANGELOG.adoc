@@ -1,6 +1,6 @@
 = Changelog
 
-== Unreleased
+== 0.5.0 (2026-06-23)
 
 * Optional Micrometer metrics: per-channel `notify4j.notifications` counters tagged
   `channel` + `outcome` (sent/failed/suppressed), so operators can confirm delivery. The core
