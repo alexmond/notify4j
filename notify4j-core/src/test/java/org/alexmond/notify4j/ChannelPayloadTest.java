@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
@@ -119,6 +120,38 @@ class ChannelPayloadTest {
 			.notify(evt());
 		assertThat(path.get()).isEqualTo("/1/messages.json");
 		assertThat(body.get()).isEqualTo("token=tok&user=usr&title=FAILED&message=build+broke");
+	}
+
+	@Test
+	void twilioPostsFormEncodedSmsWithBasicAuth() {
+		new TwilioNotifier<Evt>(base(), "AC1", "tok", "+15550000", "+15551111", HttpClientConfig.defaults(), Evt::id,
+				Evt::status, Evt::message, List.of())
+			.notify(evt());
+		assertThat(path.get()).isEqualTo("/2010-04-01/Accounts/AC1/Messages.json");
+		assertThat(auth.get())
+			.isEqualTo("Basic " + Base64.getEncoder().encodeToString("AC1:tok".getBytes(StandardCharsets.UTF_8)));
+		assertThat(body.get()).isEqualTo("To=%2B15551111&From=%2B15550000&Body=build+broke");
+	}
+
+	@Test
+	void signalPostsJsonToBridge() {
+		new SignalNotifier<Evt>(base(), "+15550000", "+15551111", HttpClientConfig.defaults(), Evt::id, Evt::status,
+				Evt::message, List.of())
+			.notify(evt());
+		assertThat(path.get()).isEqualTo("/v2/send");
+		assertThat(body.get())
+			.isEqualTo("{\"number\":\"+15550000\",\"recipients\":[\"+15551111\"],\"message\":\"build broke\"}");
+	}
+
+	@Test
+	void whatsAppPostsCloudApiEnvelopeWithBearer() {
+		new WhatsAppNotifier<Evt>(base(), "tok", "PHID", "+15551111", HttpClientConfig.defaults(), Evt::id, Evt::status,
+				Evt::message, List.of())
+			.notify(evt());
+		assertThat(path.get()).isEqualTo("/" + WhatsAppNotifier.API_VERSION + "/PHID/messages");
+		assertThat(auth.get()).isEqualTo("Bearer tok");
+		assertThat(body.get()).isEqualTo("{\"messaging_product\":\"whatsapp\",\"to\":\"+15551111\","
+				+ "\"type\":\"text\",\"text\":{\"body\":\"build broke\"}}");
 	}
 
 	@Test

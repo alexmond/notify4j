@@ -115,6 +115,15 @@ before the endpoint is built.
 | `pushover`
 | `pushover://<app-token>/<user-key>` (hosted mobile/desktop push)
 
+| `twilio`
+| `twilio://<account-sid>:<auth-token>@<from>/<to>` (SMS)
+
+| `signal`
+| `signal://<bridge-host>/<from>/<to>` (via a signal-cli REST bridge; use `+http` locally)
+
+| `whatsapp`
+| `whatsapp://<token>@<phone-number-id>/<to>` (Meta WhatsApp Cloud API)
+
 | `telegram`
 | `telegram://api.telegram.org/<bot-token>/<chat-id>`
 

@@ -20,7 +20,8 @@ the product — there is no server to run.
 * *Spring-free core + a thin starter* — use the engine anywhere, or drop in the Spring Boot starter and
   configure `notify4j.urls`.
 * *Channels included* — Slack, MS Teams, Discord, Mattermost, Rocket.Chat, Google Chat, Telegram,
-  generic webhook, ntfy, Gotify, Pushover, PagerDuty, OpsGenie, and email.
+  generic webhook, ntfy, Gotify, Pushover, SMS (Twilio), Signal, WhatsApp, PagerDuty, OpsGenie,
+  and email.
 
 == Get started
 
