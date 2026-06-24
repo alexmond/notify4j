@@ -17,6 +17,7 @@ notify4j:
     # - telegram://api.telegram.org/<bot-token>/<chat-id>
     # - ntfy://ntfy.sh/<topic>
     # - gotify://my-host/<app-token>
+    # - pushover://<app-token>/<user-key>
     # - webhook://my-host/notify
     # - pagerduty://<routing-key>?tags=failed
     # - opsgenie://<api-key>?tags=failed
