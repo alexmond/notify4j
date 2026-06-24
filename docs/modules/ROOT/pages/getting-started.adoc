@@ -110,3 +110,9 @@ The `notify4j-sample` module is a runnable Spring Boot app wired exactly as abov
 ----
 
 With no channels configured it still fans the demo event out to the always-on logging sink.
+
+== Beyond the single facade
+
+Building one facade per tenant (or wiring notify4j without the starter)? See
+xref:configuration.adoc#_multi_tenant[Multi-tenant: async, retry & metrics without the starter]
+for how to get async delivery, retry, and metrics on a programmatic `NotificationsFactory`.
