@@ -32,6 +32,8 @@ import java.util.function.Function;
  *   twilio://&lt;account-sid&gt;:&lt;auth-token&gt;@&lt;from&gt;/&lt;to&gt;
  *   signal://&lt;bridge-host&gt;/&lt;from&gt;/&lt;to&gt;
  *   whatsapp://&lt;token&gt;@&lt;phone-number-id&gt;/&lt;to&gt;
+ *   zulip://&lt;bot-email&gt;:&lt;api-key&gt;@&lt;host&gt;/&lt;stream&gt;/&lt;topic&gt;
+ *   pushbullet://&lt;access-token&gt;
  *   pagerduty://&lt;routing-key&gt;?tags=failed
  *   opsgenie://&lt;api-key&gt;?tags=failed
  * </pre>
@@ -109,6 +111,11 @@ public class NotifierUrlParser<E> {
 			case "twilio" -> twilio(transport, rest, url);
 			case "signal" -> signal(transport, rest, url);
 			case "whatsapp" -> whatsapp(transport, rest, url);
+			case "zulip" -> zulip(transport, rest, url);
+			case "pushbullet" -> {
+				String[] ch = credentialAndHost(transport, rest, url, "api.pushbullet.com");
+				yield new PushbulletNotifier<>(ch[1], ch[0], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+			}
 			case "pagerduty" -> {
 				String[] ch = credentialAndHost(transport, rest, url, "events.pagerduty.com");
 				yield new PagerDutyNotifier<>(ch[1], ch[0], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
@@ -254,6 +261,27 @@ public class NotifierUrlParser<E> {
 		}
 		String baseUrl = transport + "://graph.facebook.com";
 		return new WhatsAppNotifier<>(baseUrl, token, idTo[0], idTo[1], httpConfig, idFn, statusFn, messageFn,
+				ignoreChanges);
+	}
+
+	private Notifier<E> zulip(String transport, String rest, String url) {
+		// zulip://<bot-email>:<api-key>@<host>/<stream>/<topic> — lastIndexOf('@')
+		// because the
+		// bot email itself contains '@'.
+		int at = rest.lastIndexOf('@');
+		int colon = (at < 0) ? -1 : rest.lastIndexOf(':', at);
+		if (at < 0 || colon < 0) {
+			throw new IllegalArgumentException("zulip url needs <bot-email>:<api-key>@<host>/<stream>/<topic>: " + url);
+		}
+		String email = rest.substring(0, colon);
+		String key = rest.substring(colon + 1, at);
+		String[] hostPath = rest.substring(at + 1).split("/");
+		if (email.isBlank() || key.isBlank() || hostPath.length < 3 || hostPath[0].isBlank() || hostPath[1].isBlank()
+				|| hostPath[2].isBlank()) {
+			throw new IllegalArgumentException("zulip url needs <bot-email>:<api-key>@<host>/<stream>/<topic>: " + url);
+		}
+		String baseUrl = transport + "://" + hostPath[0];
+		return new ZulipNotifier<>(baseUrl, email, key, hostPath[1], hostPath[2], httpConfig, idFn, statusFn, messageFn,
 				ignoreChanges);
 	}
 

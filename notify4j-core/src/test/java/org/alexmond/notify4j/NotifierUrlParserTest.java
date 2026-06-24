@@ -51,6 +51,19 @@ class NotifierUrlParserTest {
 		assertThat(notifier("twilio://AC1:tok@+15550000/+15551111")).isInstanceOf(TwilioNotifier.class);
 		assertThat(notifier("signal+http://127.0.0.1:8080/+15550000/+15551111")).isInstanceOf(SignalNotifier.class);
 		assertThat(notifier("whatsapp://token@phone-id/+15551111")).isInstanceOf(WhatsAppNotifier.class);
+		assertThat(notifier("zulip://bot@x.com:key@myorg.zulipchat.com/general/deploys"))
+			.isInstanceOf(ZulipNotifier.class);
+		assertThat(notifier("pushbullet://o.access-token")).isInstanceOf(PushbulletNotifier.class);
+	}
+
+	@Test
+	void zulipParsesBotEmailContainingAtSign() {
+		// the bot email itself has an '@', so the host split must use the LAST '@'
+		assertThat(notifier("zulip://bot@x.com:key@myorg.zulipchat.com/general/deploys"))
+			.isInstanceOf(ZulipNotifier.class);
+		assertThatThrownBy(() -> parser.parse("zulip://bot@x.com:key@host/only-stream"))
+			.isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("topic");
 	}
 
 	@Test

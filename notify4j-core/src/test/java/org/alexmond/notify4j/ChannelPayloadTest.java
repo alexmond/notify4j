@@ -29,12 +29,15 @@ class ChannelPayloadTest {
 
 	private final AtomicReference<String> auth = new AtomicReference<>();
 
+	private final AtomicReference<String> accessToken = new AtomicReference<>();
+
 	@BeforeEach
 	void startServer() throws Exception {
 		server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
 		server.createContext("/", (exchange) -> {
 			path.set(exchange.getRequestURI().getPath());
 			auth.set(exchange.getRequestHeaders().getFirst("Authorization"));
+			accessToken.set(exchange.getRequestHeaders().getFirst("Access-Token"));
 			body.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
 			exchange.sendResponseHeaders(200, -1);
 			exchange.close();
@@ -152,6 +155,27 @@ class ChannelPayloadTest {
 		assertThat(auth.get()).isEqualTo("Bearer tok");
 		assertThat(body.get()).isEqualTo("{\"messaging_product\":\"whatsapp\",\"to\":\"+15551111\","
 				+ "\"type\":\"text\",\"text\":{\"body\":\"build broke\"}}");
+	}
+
+	@Test
+	void zulipPostsFormEncodedStreamMessageWithBasicAuth() {
+		new ZulipNotifier<Evt>(base(), "bot@x.com", "key", "general", "deploys", HttpClientConfig.defaults(), Evt::id,
+				Evt::status, Evt::message, List.of())
+			.notify(evt());
+		assertThat(path.get()).isEqualTo("/api/v1/messages");
+		assertThat(auth.get())
+			.isEqualTo("Basic " + Base64.getEncoder().encodeToString("bot@x.com:key".getBytes(StandardCharsets.UTF_8)));
+		assertThat(body.get()).isEqualTo("type=stream&to=general&topic=deploys&content=build+broke");
+	}
+
+	@Test
+	void pushbulletPostsNoteWithAccessTokenHeader() {
+		new PushbulletNotifier<Evt>(base(), "o.tok", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				List.of())
+			.notify(evt());
+		assertThat(path.get()).isEqualTo("/v2/pushes");
+		assertThat(accessToken.get()).isEqualTo("o.tok");
+		assertThat(body.get()).isEqualTo("{\"type\":\"note\",\"title\":\"FAILED\",\"body\":\"build broke\"}");
 	}
 
 	@Test
