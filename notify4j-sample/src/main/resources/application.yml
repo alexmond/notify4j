@@ -21,6 +21,8 @@ notify4j:
     # - twilio://<account-sid>:<auth-token>@<from>/<to>      # SMS
     # - signal://<bridge-host>/<from>/<to>                   # via signal-cli REST bridge
     # - whatsapp://<token>@<phone-number-id>/<to>            # Meta WhatsApp Cloud API
+    # - zulip://<bot-email>:<api-key>@<host>/<stream>/<topic>
+    # - pushbullet://<access-token>
     # - webhook://my-host/notify
     # - pagerduty://<routing-key>?tags=failed
     # - opsgenie://<api-key>?tags=failed

@@ -124,6 +124,12 @@ before the endpoint is built.
 | `whatsapp`
 | `whatsapp://<token>@<phone-number-id>/<to>` (Meta WhatsApp Cloud API)
 
+| `zulip`
+| `zulip://<bot-email>:<api-key>@<host>/<stream>/<topic>`
+
+| `pushbullet`
+| `pushbullet://<access-token>`
+
 | `telegram`
 | `telegram://api.telegram.org/<bot-token>/<chat-id>`
 
