@@ -1,6 +1,6 @@
 = Changelog
 
-== Unreleased
+== 0.6.0 (2026-06-24)
 
 * New channel: Pushover (`pushover://<app-token>/<user-key>`) — hosted mobile/desktop push,
   the form-encoded counterpart to the self-hosted ntfy/Gotify channels.
@@ -9,6 +9,8 @@
   (`whatsapp://<token>@<phone-number-id>/<to>`, Meta Cloud API).
 * New channels: Zulip (`zulip://<bot-email>:<api-key>@<host>/<stream>/<topic>`) and Pushbullet
   (`pushbullet://<access-token>`).
+* Docs: how to wire async/retry/metrics onto a per-tenant `NotificationsFactory` without the
+  starter (the programmatic multi-tenant path).
 
 == 0.5.0 (2026-06-23)
 
