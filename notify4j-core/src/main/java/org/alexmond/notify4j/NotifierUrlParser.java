@@ -29,6 +29,9 @@ import java.util.function.Function;
  *   ntfy://ntfy.sh/&lt;topic&gt;
  *   gotify://my-host/&lt;app-token&gt;
  *   pushover://&lt;app-token&gt;/&lt;user-key&gt;
+ *   twilio://&lt;account-sid&gt;:&lt;auth-token&gt;@&lt;from&gt;/&lt;to&gt;
+ *   signal://&lt;bridge-host&gt;/&lt;from&gt;/&lt;to&gt;
+ *   whatsapp://&lt;token&gt;@&lt;phone-number-id&gt;/&lt;to&gt;
  *   pagerduty://&lt;routing-key&gt;?tags=failed
  *   opsgenie://&lt;api-key&gt;?tags=failed
  * </pre>
@@ -103,6 +106,9 @@ public class NotifierUrlParser<E> {
 			case "ntfy" -> ntfy(transport, rest, url);
 			case "gotify" -> gotify(transport, rest, url);
 			case "pushover" -> pushover(transport, rest, url);
+			case "twilio" -> twilio(transport, rest, url);
+			case "signal" -> signal(transport, rest, url);
+			case "whatsapp" -> whatsapp(transport, rest, url);
 			case "pagerduty" -> {
 				String[] ch = credentialAndHost(transport, rest, url, "events.pagerduty.com");
 				yield new PagerDutyNotifier<>(ch[1], ch[0], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
@@ -198,6 +204,56 @@ public class NotifierUrlParser<E> {
 		}
 		String baseUrl = transport + "://api.pushover.net";
 		return new PushoverNotifier<>(baseUrl, parts[0], parts[1], httpConfig, idFn, statusFn, messageFn,
+				ignoreChanges);
+	}
+
+	private Notifier<E> twilio(String transport, String rest, String url) {
+		// twilio://<account-sid>:<auth-token>@<from>/<to> — parsed by hand so '+' in
+		// phone
+		// numbers survives (URI host parsing would choke on it).
+		int at = rest.indexOf('@');
+		if (at < 0) {
+			throw new IllegalArgumentException("twilio url needs <sid>:<token>@<from>/<to>: " + url);
+		}
+		String[] sidToken = rest.substring(0, at).split(":", 2);
+		String[] fromTo = rest.substring(at + 1).split("/");
+		if (sidToken.length < 2 || fromTo.length < 2 || sidToken[0].isBlank() || sidToken[1].isBlank()
+				|| fromTo[0].isBlank() || fromTo[1].isBlank()) {
+			throw new IllegalArgumentException("twilio url needs <sid>:<token>@<from>/<to>: " + url);
+		}
+		String baseUrl = transport + "://api.twilio.com";
+		return new TwilioNotifier<>(baseUrl, sidToken[0], sidToken[1], fromTo[0], fromTo[1], httpConfig, idFn, statusFn,
+				messageFn, ignoreChanges);
+	}
+
+	private Notifier<E> signal(String transport, String rest, String url) {
+		// signal://<host>[:port]/<from>/<to>
+		int slash = rest.indexOf('/');
+		if (slash < 0) {
+			throw new IllegalArgumentException("signal url needs <host>/<from>/<to>: " + url);
+		}
+		String authority = rest.substring(0, slash);
+		String[] seg = rest.substring(slash + 1).split("/");
+		if (authority.isBlank() || seg.length < 2 || seg[0].isBlank() || seg[1].isBlank()) {
+			throw new IllegalArgumentException("signal url needs <host>/<from>/<to>: " + url);
+		}
+		String baseUrl = transport + "://" + authority;
+		return new SignalNotifier<>(baseUrl, seg[0], seg[1], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+	}
+
+	private Notifier<E> whatsapp(String transport, String rest, String url) {
+		// whatsapp://<token>@<phone-number-id>/<to>
+		int at = rest.indexOf('@');
+		if (at < 0) {
+			throw new IllegalArgumentException("whatsapp url needs <token>@<phone-id>/<to>: " + url);
+		}
+		String token = rest.substring(0, at);
+		String[] idTo = rest.substring(at + 1).split("/");
+		if (token.isBlank() || idTo.length < 2 || idTo[0].isBlank() || idTo[1].isBlank()) {
+			throw new IllegalArgumentException("whatsapp url needs <token>@<phone-id>/<to>: " + url);
+		}
+		String baseUrl = transport + "://graph.facebook.com";
+		return new WhatsAppNotifier<>(baseUrl, token, idTo[0], idTo[1], httpConfig, idFn, statusFn, messageFn,
 				ignoreChanges);
 	}
 

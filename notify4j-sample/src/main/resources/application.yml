@@ -18,6 +18,9 @@ notify4j:
     # - ntfy://ntfy.sh/<topic>
     # - gotify://my-host/<app-token>
     # - pushover://<app-token>/<user-key>
+    # - twilio://<account-sid>:<auth-token>@<from>/<to>      # SMS
+    # - signal://<bridge-host>/<from>/<to>                   # via signal-cli REST bridge
+    # - whatsapp://<token>@<phone-number-id>/<to>            # Meta WhatsApp Cloud API
     # - webhook://my-host/notify
     # - pagerduty://<routing-key>?tags=failed
     # - opsgenie://<api-key>?tags=failed

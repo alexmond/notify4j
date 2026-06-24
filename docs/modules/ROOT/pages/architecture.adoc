@@ -67,7 +67,7 @@ isolation (`notify` is `final`, catches and logs). Subclasses implement `doNotif
 subclass-per-event); owns the JDK `HttpClient`, applies a transition filter, POSTs JSON.
 Subclasses implement `payload(event)` and optionally `headers()`. Concrete: Slack, Teams,
 Discord, Mattermost, Rocket.Chat, Google Chat, Webhook, Telegram, Ntfy, Gotify, Pushover,
-PagerDuty, OpsGenie.
+Twilio (SMS), Signal, WhatsApp, PagerDuty, OpsGenie.
 
 `AbstractTransitionNotifier<E>`:: Alternative base for non-HTTP notifiers that subclass
 instead of taking functions.

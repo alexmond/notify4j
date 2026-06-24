@@ -4,6 +4,9 @@
 
 * New channel: Pushover (`pushover://<app-token>/<user-key>`) — hosted mobile/desktop push,
   the form-encoded counterpart to the self-hosted ntfy/Gotify channels.
+* New channels: SMS via Twilio (`twilio://<sid>:<token>@<from>/<to>`), Signal
+  (`signal://<bridge-host>/<from>/<to>`, via a signal-cli REST bridge), and WhatsApp
+  (`whatsapp://<token>@<phone-number-id>/<to>`, Meta Cloud API).
 
 == 0.5.0 (2026-06-23)
 

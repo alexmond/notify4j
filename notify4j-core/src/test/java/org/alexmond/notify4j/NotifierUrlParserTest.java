@@ -48,12 +48,26 @@ class NotifierUrlParserTest {
 			.isInstanceOf(GoogleChatNotifier.class);
 		assertThat(notifier("gotify://my-host/app-token")).isInstanceOf(GotifyNotifier.class);
 		assertThat(notifier("pushover://app-token/user-key")).isInstanceOf(PushoverNotifier.class);
+		assertThat(notifier("twilio://AC1:tok@+15550000/+15551111")).isInstanceOf(TwilioNotifier.class);
+		assertThat(notifier("signal+http://127.0.0.1:8080/+15550000/+15551111")).isInstanceOf(SignalNotifier.class);
+		assertThat(notifier("whatsapp://token@phone-id/+15551111")).isInstanceOf(WhatsAppNotifier.class);
 	}
 
 	@Test
 	void pushoverRequiresTokenAndUser() {
 		assertThatThrownBy(() -> parser.parse("pushover://only-token")).isInstanceOf(IllegalArgumentException.class)
 			.hasMessageContaining("user-key");
+	}
+
+	@Test
+	void messagingChannelsValidateTheirParts() {
+		assertThatThrownBy(() -> parser.parse("twilio://AC1:tok@+15550000"))
+			.isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("from");
+		assertThatThrownBy(() -> parser.parse("signal://host/only-from")).isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("from");
+		assertThatThrownBy(() -> parser.parse("whatsapp://token@phone-id")).isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("phone-id");
 	}
 
 	@Test
