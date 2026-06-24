@@ -47,6 +47,13 @@ class NotifierUrlParserTest {
 		assertThat(notifier("googlechat://chat.googleapis.com/v1/spaces/s/messages"))
 			.isInstanceOf(GoogleChatNotifier.class);
 		assertThat(notifier("gotify://my-host/app-token")).isInstanceOf(GotifyNotifier.class);
+		assertThat(notifier("pushover://app-token/user-key")).isInstanceOf(PushoverNotifier.class);
+	}
+
+	@Test
+	void pushoverRequiresTokenAndUser() {
+		assertThatThrownBy(() -> parser.parse("pushover://only-token")).isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("user-key");
 	}
 
 	@Test

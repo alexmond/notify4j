@@ -112,6 +112,9 @@ before the endpoint is built.
 | `gotify`
 | `gotify://my-host/<app-token>` (self-hosted push)
 
+| `pushover`
+| `pushover://<app-token>/<user-key>` (hosted mobile/desktop push)
+
 | `telegram`
 | `telegram://api.telegram.org/<bot-token>/<chat-id>`
 

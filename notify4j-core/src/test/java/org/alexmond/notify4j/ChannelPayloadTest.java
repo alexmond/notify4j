@@ -113,6 +113,15 @@ class ChannelPayloadTest {
 	}
 
 	@Test
+	void pushoverPostsFormEncodedToMessagesEndpoint() {
+		new PushoverNotifier<Evt>(base(), "tok", "usr", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				List.of())
+			.notify(evt());
+		assertThat(path.get()).isEqualTo("/1/messages.json");
+		assertThat(body.get()).isEqualTo("token=tok&user=usr&title=FAILED&message=build+broke");
+	}
+
+	@Test
 	void telegramPostsChatIdAndTextToSendMessage() {
 		new TelegramNotifier<Evt>(base(), "tok123", "chat456", HttpClientConfig.defaults(), Evt::id, Evt::status,
 				Evt::message, List.of())

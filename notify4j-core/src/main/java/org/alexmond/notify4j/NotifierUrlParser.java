@@ -28,6 +28,7 @@ import java.util.function.Function;
  *   telegram://api.telegram.org/&lt;bot-token&gt;/&lt;chat-id&gt;
  *   ntfy://ntfy.sh/&lt;topic&gt;
  *   gotify://my-host/&lt;app-token&gt;
+ *   pushover://&lt;app-token&gt;/&lt;user-key&gt;
  *   pagerduty://&lt;routing-key&gt;?tags=failed
  *   opsgenie://&lt;api-key&gt;?tags=failed
  * </pre>
@@ -101,6 +102,7 @@ public class NotifierUrlParser<E> {
 			case "telegram" -> telegram(transport, rest, url);
 			case "ntfy" -> ntfy(transport, rest, url);
 			case "gotify" -> gotify(transport, rest, url);
+			case "pushover" -> pushover(transport, rest, url);
 			case "pagerduty" -> {
 				String[] ch = credentialAndHost(transport, rest, url, "events.pagerduty.com");
 				yield new PagerDutyNotifier<>(ch[1], ch[0], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
@@ -186,6 +188,17 @@ public class NotifierUrlParser<E> {
 		}
 		String baseUrl = transport + "://" + authority;
 		return new GotifyNotifier<>(baseUrl, token, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+	}
+
+	private Notifier<E> pushover(String transport, String rest, String url) {
+		// pushover://<app-token>/<user-key> — both credentials, fixed API host.
+		String[] parts = rest.split("/");
+		if (parts.length < 2 || parts[0].isBlank() || parts[1].isBlank()) {
+			throw new IllegalArgumentException("pushover url needs <app-token>/<user-key>: " + url);
+		}
+		String baseUrl = transport + "://api.pushover.net";
+		return new PushoverNotifier<>(baseUrl, parts[0], parts[1], httpConfig, idFn, statusFn, messageFn,
+				ignoreChanges);
 	}
 
 	/**

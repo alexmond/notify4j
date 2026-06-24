@@ -1,5 +1,10 @@
 = Changelog
 
+== Unreleased
+
+* New channel: Pushover (`pushover://<app-token>/<user-key>`) — hosted mobile/desktop push,
+  the form-encoded counterpart to the self-hosted ntfy/Gotify channels.
+
 == 0.5.0 (2026-06-23)
 
 * Optional Micrometer metrics: per-channel `notify4j.notifications` counters tagged
