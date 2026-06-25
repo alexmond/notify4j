@@ -12,6 +12,8 @@ import java.util.function.Function;
  * API</a> ({@code POST {baseUrl}/2010-04-01/Accounts/{sid}/Messages.json}, form-encoded
  * {@code To}/{@code From}/{@code Body} with HTTP Basic auth). {@code baseUrl} is
  * configurable for testing.
+ *
+ * @param <E> the application's event type
  */
 public class TwilioNotifier<E> extends AbstractHttpNotifier<E> {
 

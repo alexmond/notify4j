@@ -11,6 +11,8 @@ import java.util.function.Function;
  * {@code title}, {@code message}). The application API token and user/group key are
  * carried in the URL; the status becomes the title and the message the body.
  * {@code baseUrl} is configurable for testing.
+ *
+ * @param <E> the application's event type
  */
 public class PushoverNotifier<E> extends AbstractHttpNotifier<E> {
 

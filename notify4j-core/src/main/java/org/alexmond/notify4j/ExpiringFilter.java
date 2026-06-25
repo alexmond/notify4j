@@ -6,6 +6,8 @@ import java.util.function.Predicate;
 /**
  * A {@link NotificationFilter} backed by a predicate, optionally expiring at a given
  * instant.
+ *
+ * @param <E> the application's event type
  */
 public class ExpiringFilter<E> implements NotificationFilter<E> {
 
@@ -16,7 +18,9 @@ public class ExpiringFilter<E> implements NotificationFilter<E> {
 	private final Instant expiresAt;
 
 	/**
-	 * @param expiresAt when to drop this filter; {@code null} = never expires.
+	 * @param id stable id so the mute can be looked up / removed
+	 * @param predicate true to suppress (mute) a given event
+	 * @param expiresAt when to drop this filter; {@code null} = never expires
 	 */
 	public ExpiringFilter(String id, Predicate<E> predicate, Instant expiresAt) {
 		this.id = id;

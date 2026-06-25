@@ -11,6 +11,11 @@ package org.alexmond.notify4j;
 @FunctionalInterface
 public interface Notifier<E> {
 
+	/**
+	 * Deliver a notification for {@code event}. Must not throw — a failing channel is
+	 * expected to log and swallow so it never breaks the caller or sibling channels.
+	 * @param event the event to notify about
+	 */
 	void notify(E event);
 
 }

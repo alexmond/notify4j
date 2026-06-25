@@ -9,6 +9,8 @@ import java.util.function.Function;
  * ({@code POST {baseUrl}/v2/send} with
  * {@code {"number":<from>,"recipients":[<to>],"message":…}}). {@code baseUrl} is the
  * bridge (use a {@code +http} transport for a local bridge).
+ *
+ * @param <E> the application's event type
  */
 public class SignalNotifier<E> extends AbstractHttpNotifier<E> {
 

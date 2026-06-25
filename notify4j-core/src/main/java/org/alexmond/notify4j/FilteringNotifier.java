@@ -7,6 +7,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Decorates a delegate notifier and suppresses events matching any active
  * {@link NotificationFilter} (e.g. "mute this pipeline for 1h"). Expired filters are
  * pruned lazily.
+ *
+ * @param <E> the application's event type
  */
 public class FilteringNotifier<E> implements Notifier<E> {
 

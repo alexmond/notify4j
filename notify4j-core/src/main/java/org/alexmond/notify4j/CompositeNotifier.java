@@ -4,7 +4,11 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Fans an event out to several notifiers, isolating each one's failures. */
+/**
+ * Fans an event out to several notifiers, isolating each one's failures.
+ *
+ * @param <E> the application's event type
+ */
 public class CompositeNotifier<E> implements Notifier<E> {
 
 	private static final Logger log = LoggerFactory.getLogger(CompositeNotifier.class);

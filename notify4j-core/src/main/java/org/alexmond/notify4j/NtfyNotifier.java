@@ -7,6 +7,8 @@ import java.util.function.Function;
  * Publishes to an <a href="https://ntfy.sh">ntfy</a> topic. Uses ntfy's JSON-to-root
  * form: POST the {@code baseUrl} root with {@code {"topic":…,"message":…,"title":…}},
  * where the title carries the status. Works against ntfy.sh or a self-hosted server.
+ *
+ * @param <E> the application's event type
  */
 public class NtfyNotifier<E> extends AbstractHttpNotifier<E> {
 

@@ -9,6 +9,8 @@ import java.util.function.Function;
  * envelope). The id becomes the {@code dedup_key} so repeated failures for the same
  * subject coalesce into one incident. No auth header — the routing key is carried in the
  * body.
+ *
+ * @param <E> the application's event type
  */
 public class PagerDutyNotifier<E> extends AbstractHttpNotifier<E> {
 

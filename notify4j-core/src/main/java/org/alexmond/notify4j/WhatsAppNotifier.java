@@ -11,6 +11,8 @@ import java.util.function.Function;
  * {@code Bearer} token and a {@code messaging_product:"whatsapp"} text envelope).
  * {@code baseUrl} is configurable for testing; the Graph API version is pinned by
  * {@link #API_VERSION}.
+ *
+ * @param <E> the application's event type
  */
 public class WhatsAppNotifier<E> extends AbstractHttpNotifier<E> {
 

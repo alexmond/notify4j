@@ -29,17 +29,17 @@ import org.springframework.mail.javamail.JavaMailSender;
  * application supplies a {@link NotificationAdapter} bean (which teaches the channels how
  * to read the app's event type). Any other {@link Notifier} beans on the context are
  * folded in as extra fan-out targets.
+ *
+ * <p>
+ * The raw types in these bean methods are deliberate: the facade is generic over the
+ * app's event type, which is only known to the {@link NotificationAdapter} bean. Spring
+ * injects that single adapter and all {@link Notifier} beans by raw type, and the facade
+ * fans out to them uniformly.
  */
 @AutoConfiguration
 @EnableConfigurationProperties(NotificationProperties.class)
 public class NotificationsAutoConfiguration {
 
-	/**
-	 * Raw types here are deliberate: the facade is generic over the app's event type,
-	 * which is only known to the {@link NotificationAdapter} bean. Spring injects that
-	 * single adapter and all {@link Notifier} beans by raw type, and the facade fans out
-	 * to them uniformly.
-	 */
 	/**
 	 * The factory that assembles {@link Notifications} from a URL list with the
 	 * configured defaults. Always available once an adapter is present — a multi-tenant

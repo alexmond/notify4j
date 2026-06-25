@@ -3,6 +3,8 @@ package org.alexmond.notify4j;
 /**
  * A mute rule: suppresses matching events, optionally until it expires. Used by
  * {@link FilteringNotifier}.
+ *
+ * @param <E> the application's event type
  */
 public interface NotificationFilter<E> {
 

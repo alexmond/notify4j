@@ -7,6 +7,8 @@ import java.util.function.Function;
  * Posts to a Google Chat space via its incoming webhook ({@code {"text": ...}}). The
  * webhook's {@code key}/{@code token} query params are carried through on the endpoint
  * URL.
+ *
+ * @param <E> the application's event type
  */
 public class GoogleChatNotifier<E> extends AbstractHttpNotifier<E> {
 

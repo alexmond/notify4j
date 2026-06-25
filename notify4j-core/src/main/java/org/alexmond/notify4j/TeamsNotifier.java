@@ -11,6 +11,8 @@ import java.util.function.Function;
  * in May 2026, and the Workflows endpoint accepts MessageCard payloads (a bare
  * {@code {"text":…}} is not reliably rendered). The status becomes the card title/summary
  * and the message its body.
+ *
+ * @param <E> the application's event type
  */
 public class TeamsNotifier<E> extends AbstractHttpNotifier<E> {
 

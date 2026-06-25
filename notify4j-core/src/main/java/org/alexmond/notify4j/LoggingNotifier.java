@@ -1,6 +1,10 @@
 package org.alexmond.notify4j;
 
-/** Default sink: logs each event. Useful as a no-config default and for tests. */
+/**
+ * Default sink: logs each event. Useful as a no-config default and for tests.
+ *
+ * @param <E> the application's event type
+ */
 public class LoggingNotifier<E> extends AbstractEventNotifier<E> {
 
 	@Override

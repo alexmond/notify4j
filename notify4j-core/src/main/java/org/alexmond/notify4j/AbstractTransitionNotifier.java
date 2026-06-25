@@ -7,13 +7,17 @@ import java.util.List;
  * {@link TransitionFilter}. Subclasses supply {@link #entityId} and {@link #status} for
  * the event type. (Channel notifiers that take functions instead of subclassing use a
  * {@link TransitionFilter} directly — see {@link AbstractHttpNotifier}.)
+ *
+ * @param <E> the application's event type
  */
 public abstract class AbstractTransitionNotifier<E> extends AbstractEventNotifier<E> {
 
 	private final TransitionFilter filter = new TransitionFilter();
 
+	/** The stable identity of the event's subject, used to track status transitions. */
 	protected abstract Object entityId(E event);
 
+	/** The current status of the subject (e.g. {@code SUCCESS}, {@code FAILED}). */
 	protected abstract String status(E event);
 
 	@Override
@@ -21,6 +25,10 @@ public abstract class AbstractTransitionNotifier<E> extends AbstractEventNotifie
 		return filter.allow(entityId(event), status(event));
 	}
 
+	/**
+	 * Drop the tracked status for {@code entityId}, so its next event is treated as
+	 * fresh.
+	 */
 	protected void forget(Object entityId) {
 		filter.forget(entityId);
 	}
