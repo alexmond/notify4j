@@ -1,6 +1,6 @@
 = Changelog
 
-== Unreleased
+== 0.7.0 (2026-06-25)
 
 * *Security:* channel URLs carry secrets (Telegram/Gotify tokens in the URL, opaque
   Slack/Discord webhook URLs), so they are no longer logged on delivery failure — exception
