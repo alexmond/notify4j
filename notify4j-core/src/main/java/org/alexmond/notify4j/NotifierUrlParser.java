@@ -163,6 +163,15 @@ public class NotifierUrlParser<E> {
 		return kept.isEmpty() ? base : base + "?" + kept;
 	}
 
+	/**
+	 * Drop any trailing query so it can't land inside a credential/target segment of the
+	 * hand-parsed schemes (the URI-based ones ignore the query already).
+	 */
+	private static String stripQuery(String rest) {
+		int q = rest.indexOf('?');
+		return (q < 0) ? rest : rest.substring(0, q);
+	}
+
 	private Notifier<E> telegram(String transport, String rest, String url) {
 		URI u = URI.create(transport + "://" + rest);
 		String authority = u.getAuthority();
@@ -210,7 +219,7 @@ public class NotifierUrlParser<E> {
 
 	private Notifier<E> pushover(String transport, String rest, String url) {
 		// pushover://<app-token>/<user-key> — both credentials, fixed API host.
-		String[] parts = rest.split("/");
+		String[] parts = stripQuery(rest).split("/");
 		if (parts.length < 2 || parts[0].isBlank() || parts[1].isBlank()) {
 			throw new IllegalArgumentException("pushover url needs <app-token>/<user-key>: " + url);
 		}
@@ -223,6 +232,7 @@ public class NotifierUrlParser<E> {
 		// twilio://<account-sid>:<auth-token>@<from>/<to> — parsed by hand so '+' in
 		// phone
 		// numbers survives (URI host parsing would choke on it).
+		rest = stripQuery(rest);
 		int at = rest.indexOf('@');
 		if (at < 0) {
 			throw new IllegalArgumentException("twilio url needs <sid>:<token>@<from>/<to>: " + url);
@@ -240,6 +250,7 @@ public class NotifierUrlParser<E> {
 
 	private Notifier<E> signal(String transport, String rest, String url) {
 		// signal://<host>[:port]/<from>/<to>
+		rest = stripQuery(rest);
 		int slash = rest.indexOf('/');
 		if (slash < 0) {
 			throw new IllegalArgumentException("signal url needs <host>/<from>/<to>: " + url);
@@ -255,6 +266,7 @@ public class NotifierUrlParser<E> {
 
 	private Notifier<E> whatsapp(String transport, String rest, String url) {
 		// whatsapp://<token>@<phone-number-id>/<to>
+		rest = stripQuery(rest);
 		int at = rest.indexOf('@');
 		if (at < 0) {
 			throw new IllegalArgumentException("whatsapp url needs <token>@<phone-id>/<to>: " + url);
@@ -273,6 +285,7 @@ public class NotifierUrlParser<E> {
 		// zulip://<bot-email>:<api-key>@<host>/<stream>/<topic> — lastIndexOf('@')
 		// because the
 		// bot email itself contains '@'.
+		rest = stripQuery(rest);
 		int at = rest.lastIndexOf('@');
 		int colon = (at < 0) ? -1 : rest.lastIndexOf(':', at);
 		if (at < 0 || colon < 0) {

@@ -57,6 +57,13 @@ class NotifierUrlParserTest {
 	}
 
 	@Test
+	void handParsedSchemesStripStrayQuery() {
+		// a stray non-tags query must not land inside the last credential/target segment
+		assertThat(notifier("pushover://tok/user?x=1")).isInstanceOf(PushoverNotifier.class);
+		assertThat(notifier("twilio://AC:tok@+15550000/+15551111?x=1")).isInstanceOf(TwilioNotifier.class);
+	}
+
+	@Test
 	void zulipParsesBotEmailContainingAtSign() {
 		// the bot email itself has an '@', so the host split must use the LAST '@'
 		assertThat(notifier("zulip://bot@x.com:key@myorg.zulipchat.com/general/deploys"))

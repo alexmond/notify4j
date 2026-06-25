@@ -28,14 +28,21 @@ public class TransitionFilter {
 
 	/** Record the transition and return whether it should be delivered. */
 	public boolean allow(Object entityId, String status) {
-		String from = lastStatus.put(entityId, status);
-		if (from == null) {
-			from = UNKNOWN;
+		if (entityId == null) {
+			// No stable identity to dedupe on — deliver and don't track.
+			return true;
 		}
-		if (from.equals(status)) {
-			return false;
-		}
-		return !ignored(from, status);
+		String to = (status != null) ? status : UNKNOWN;
+		boolean[] deliver = { false };
+		// compute() is atomic per key, so concurrent events for the same id can't
+		// interleave
+		// the read-decide-write and double-fire or lose a transition.
+		lastStatus.compute(entityId, (key, from) -> {
+			String prev = (from != null) ? from : UNKNOWN;
+			deliver[0] = !prev.equals(to) && !ignored(prev, to);
+			return to;
+		});
+		return deliver[0];
 	}
 
 	public void forget(Object entityId) {

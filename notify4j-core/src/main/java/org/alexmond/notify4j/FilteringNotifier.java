@@ -28,14 +28,13 @@ public class FilteringNotifier<E> implements Notifier<E> {
 		delegate.notify(event);
 	}
 
-	/**
-	 * Whether any active filter currently mutes this event (prunes expired filters as a
-	 * side effect).
-	 */
+	/** Whether any active (non-expired) filter currently mutes this event. */
 	public boolean isMuted(E event) {
-		filters.removeIf(NotificationFilter::isExpired);
+		// Plain read on the delivery hot path: skip expired filters rather than pruning
+		// (which copies the whole CopyOnWriteArrayList). Pruning happens on
+		// add/getFilters.
 		for (NotificationFilter<E> f : filters) {
-			if (f.mutes(event)) {
+			if (!f.isExpired() && f.mutes(event)) {
 				return true;
 			}
 		}
@@ -43,7 +42,8 @@ public class FilteringNotifier<E> implements Notifier<E> {
 	}
 
 	public void addFilter(NotificationFilter<E> filter) {
-		filters.removeIf((f) -> f.id().equals(filter.id()));
+		// Replace by id and opportunistically prune expired entries (off the hot path).
+		filters.removeIf((f) -> f.isExpired() || f.id().equals(filter.id()));
 		filters.add(filter);
 	}
 
