@@ -24,17 +24,21 @@ public abstract class AbstractEventNotifier<E> implements Notifier<E> {
 		if (!enabled) {
 			return;
 		}
-		if (!shouldNotify(event)) {
-			metrics.recordSuppressed(channelName());
-			return;
-		}
+		// Everything (including shouldNotify) runs inside the guard so a misbehaving
+		// adapter
+		// or filter can never break the caller. The event object is not logged — its
+		// toString may carry secrets/PII the library can't see.
 		try {
+			if (!shouldNotify(event)) {
+				metrics.recordSuppressed(channelName());
+				return;
+			}
 			doNotify(event);
 			metrics.recordSent(channelName());
 		}
 		catch (RuntimeException ex) {
 			metrics.recordFailed(channelName());
-			log.warn("notifier {} failed for event {}: {}", channelName(), event, ex.getMessage());
+			log.warn("notifier {} failed: {}", channelName(), ex.getMessage());
 		}
 	}
 

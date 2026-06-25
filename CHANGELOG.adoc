@@ -1,5 +1,15 @@
 = Changelog
 
+== Unreleased
+
+* *Security:* channel URLs carry secrets (Telegram/Gotify tokens in the URL, opaque
+  Slack/Discord webhook URLs), so they are no longer logged on delivery failure — exception
+  messages use a redacted scheme+host form, and the failing event object is no longer logged.
+* *Robustness:* a misbehaving adapter/filter can no longer break the caller (the
+  transition guard now runs inside the error-isolation try); `TransitionFilter` is atomic and
+  null-safe; the runtime-mute check no longer prunes on the delivery hot path; retry backoff is
+  clamped; and the hand-parsed channel URLs strip a stray query before splitting.
+
 == 0.6.0 (2026-06-24)
 
 * New channel: Pushover (`pushover://<app-token>/<user-key>`) — hosted mobile/desktop push,

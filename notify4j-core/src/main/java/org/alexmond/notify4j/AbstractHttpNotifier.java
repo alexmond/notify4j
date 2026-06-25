@@ -30,6 +30,9 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 
 	private final String url;
 
+	/** {@link #url} with credentials stripped, for safe logging. */
+	private final String safeUrl;
+
 	private final TransitionFilter filter;
 
 	protected final Function<E, Object> idFn;
@@ -41,6 +44,7 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 	protected AbstractHttpNotifier(String url, HttpClientConfig httpConfig, Function<E, Object> idFn,
 			Function<E, String> statusFn, Function<E, String> messageFn, List<String> ignoreChanges) {
 		this.url = url;
+		this.safeUrl = redact(url);
 		this.httpConfig = httpConfig;
 		this.idFn = idFn;
 		this.statusFn = statusFn;
@@ -84,19 +88,19 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 					backoff(attempt);
 					continue;
 				}
-				throw new IllegalStateException("HTTP " + code + " from " + url + ": " + resp.body());
+				throw new IllegalStateException("HTTP " + code + " from " + safeUrl + ": " + resp.body());
 			}
 			catch (IOException ex) {
 				if (attempt < maxAttempts) {
 					backoff(attempt);
 					continue;
 				}
-				throw new IllegalStateException("failed to POST to " + url + " after " + maxAttempts + " attempt(s)",
-						ex);
+				throw new IllegalStateException(
+						"failed to POST to " + safeUrl + " after " + maxAttempts + " attempt(s)", ex);
 			}
 			catch (InterruptedException ex) {
 				Thread.currentThread().interrupt();
-				throw new IllegalStateException("interrupted posting to " + url, ex);
+				throw new IllegalStateException("interrupted posting to " + safeUrl, ex);
 			}
 		}
 	}
@@ -104,13 +108,13 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 	/** Sleep for an exponentially increasing, capped delay before the next retry. */
 	private void backoff(int attempt) {
 		long base = httpConfig.retryBackoff().toMillis();
-		long delay = Math.min(base << Math.min(attempt - 1, MAX_BACKOFF_SHIFT), MAX_BACKOFF_MS);
+		long delay = Math.max(0L, Math.min(base << Math.min(attempt - 1, MAX_BACKOFF_SHIFT), MAX_BACKOFF_MS));
 		try {
 			Thread.sleep(delay);
 		}
 		catch (InterruptedException ex) {
 			Thread.currentThread().interrupt();
-			throw new IllegalStateException("interrupted during retry backoff to " + url, ex);
+			throw new IllegalStateException("interrupted during retry backoff to " + safeUrl, ex);
 		}
 	}
 
@@ -187,6 +191,40 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 			return n.toString();
 		}
 		return jsonString((v != null) ? v.toString() : null);
+	}
+
+	/**
+	 * Strip credentials from a URL for safe logging: keep scheme + host(:port) and mask
+	 * the path/query/userinfo, since channel URLs carry secrets (a Telegram bot token in
+	 * the path, a Gotify token in the query, or the whole opaque Slack/Discord webhook
+	 * URL).
+	 */
+	static String redact(String url) {
+		if (url == null) {
+			return "<none>";
+		}
+		try {
+			URI u = URI.create(url);
+			if (u.getHost() == null) {
+				return "<redacted>";
+			}
+			StringBuilder sb = new StringBuilder();
+			if (u.getScheme() != null) {
+				sb.append(u.getScheme()).append("://");
+			}
+			sb.append(u.getHost());
+			if (u.getPort() >= 0) {
+				sb.append(':').append(u.getPort());
+			}
+			String path = u.getRawPath();
+			if (path != null && !path.isEmpty() && !"/".equals(path)) {
+				sb.append("/…");
+			}
+			return sb.toString();
+		}
+		catch (RuntimeException ex) {
+			return "<redacted>";
+		}
 	}
 
 }
