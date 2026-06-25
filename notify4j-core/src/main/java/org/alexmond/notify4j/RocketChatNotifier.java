@@ -3,7 +3,11 @@ package org.alexmond.notify4j;
 import java.util.List;
 import java.util.function.Function;
 
-/** Posts to a Rocket.Chat incoming webhook ({@code {"text": ...}}). */
+/**
+ * Posts to a Rocket.Chat incoming webhook ({@code {"text": ...}}).
+ *
+ * @param <E> the application's event type
+ */
 public class RocketChatNotifier<E> extends AbstractHttpNotifier<E> {
 
 	public RocketChatNotifier(String webhookUrl, HttpClientConfig httpConfig, Function<E, Object> idFn,

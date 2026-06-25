@@ -8,6 +8,8 @@ import java.util.function.Function;
  * {@code {baseUrl}/message?token={appToken}} with {@code {"title":…,"message":…}}, where
  * the title carries the status. {@code baseUrl} is configurable for self-hosting and
  * tests.
+ *
+ * @param <E> the application's event type
  */
 public class GotifyNotifier<E> extends AbstractHttpNotifier<E> {
 

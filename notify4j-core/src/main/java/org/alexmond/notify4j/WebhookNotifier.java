@@ -6,6 +6,8 @@ import java.util.function.Function;
 /**
  * Posts a generic JSON payload ({@code {"id":…,"status":…,"message":…}}) to an arbitrary
  * webhook.
+ *
+ * @param <E> the application's event type
  */
 public class WebhookNotifier<E> extends AbstractHttpNotifier<E> {
 

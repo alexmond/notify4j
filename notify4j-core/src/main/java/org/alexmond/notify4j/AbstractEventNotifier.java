@@ -6,7 +6,10 @@ import org.slf4j.LoggerFactory;
 /**
  * Base notifier: an {@code enabled} flag, a {@link #shouldNotify} guard, and error
  * isolation so a channel failure is logged and swallowed (never propagated to the
- * caller). Subclasses implement {@link #doNotify}.
+ * caller). Subclasses implement {@link #doNotify}. Delivery outcomes are recorded against
+ * a {@link NotificationMetrics} sink (default no-op).
+ *
+ * @param <E> the application's event type
  */
 public abstract class AbstractEventNotifier<E> implements Notifier<E> {
 

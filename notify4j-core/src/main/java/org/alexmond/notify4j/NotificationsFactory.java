@@ -27,10 +27,12 @@ public class NotificationsFactory<E> {
 
 	private final NotificationMetrics metrics;
 
+	/** Factory with default HTTP settings, synchronous delivery, and no metrics. */
 	public NotificationsFactory(NotificationAdapter<E> adapter, List<String> ignoreChanges, boolean includeLog) {
 		this(adapter, ignoreChanges, includeLog, HttpClientConfig.defaults(), null);
 	}
 
+	/** As above, with explicit HTTP settings (shared client, timeouts, retry). */
 	public NotificationsFactory(NotificationAdapter<E> adapter, List<String> ignoreChanges, boolean includeLog,
 			HttpClientConfig httpConfig) {
 		this(adapter, ignoreChanges, includeLog, httpConfig, null);

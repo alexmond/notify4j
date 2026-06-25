@@ -9,6 +9,8 @@ import java.util.function.Function;
  * ({@code POST {endpoint}/v2/pushes} with an {@code Access-Token} header and
  * {@code {"type":"note","title":…,"body":…}}). The status becomes the title and the
  * message the body.
+ *
+ * @param <E> the application's event type
  */
 public class PushbulletNotifier<E> extends AbstractHttpNotifier<E> {
 

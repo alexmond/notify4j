@@ -44,6 +44,15 @@ public class RemindingNotifier<E> implements Notifier<E> {
 
 	private ScheduledExecutorService scheduler;
 
+	/**
+	 * @param delegate the notifier to (re-)deliver through
+	 * @param idFn reads the entity id from an event (the reminder key)
+	 * @param statusFn reads the current status from an event
+	 * @param reminderStatuses statuses that arm a reminder (e.g. {@code DOWN}); any other
+	 * status clears it
+	 * @param reminderPeriod how long an entity must stay in a reminder status before it
+	 * is re-notified
+	 */
 	public RemindingNotifier(Notifier<E> delegate, Function<E, Object> idFn, Function<E, String> statusFn,
 			Set<String> reminderStatuses, Duration reminderPeriod) {
 		this.delegate = delegate;
@@ -75,6 +84,10 @@ public class RemindingNotifier<E> implements Notifier<E> {
 		});
 	}
 
+	/**
+	 * Start the daemon scheduler that runs {@link #checkReminders} every check interval.
+	 * Idempotent.
+	 */
 	public void start() {
 		schedulerLock.lock();
 		try {
@@ -101,6 +114,7 @@ public class RemindingNotifier<E> implements Notifier<E> {
 		}
 	}
 
+	/** Stop the scheduler (if running). Idempotent; safe to call from a shutdown hook. */
 	public void stop() {
 		schedulerLock.lock();
 		try {

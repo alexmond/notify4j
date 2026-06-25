@@ -3,7 +3,11 @@ package org.alexmond.notify4j;
 import java.util.List;
 import java.util.function.Function;
 
-/** Posts a message to a Slack incoming webhook ({@code {"text": ...}}). */
+/**
+ * Posts a message to a Slack incoming webhook ({@code {"text": ...}}).
+ *
+ * @param <E> the application's event type
+ */
 public class SlackNotifier<E> extends AbstractHttpNotifier<E> {
 
 	public SlackNotifier(String webhookUrl, HttpClientConfig httpConfig, Function<E, Object> idFn,

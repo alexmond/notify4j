@@ -3,7 +3,11 @@ package org.alexmond.notify4j;
 import java.util.List;
 import java.util.function.Function;
 
-/** Posts to a Discord webhook ({@code {"content": ...}}). */
+/**
+ * Posts to a Discord webhook ({@code {"content": ...}}).
+ *
+ * @param <E> the application's event type
+ */
 public class DiscordNotifier<E> extends AbstractHttpNotifier<E> {
 
 	public DiscordNotifier(String webhookUrl, HttpClientConfig httpConfig, Function<E, Object> idFn,

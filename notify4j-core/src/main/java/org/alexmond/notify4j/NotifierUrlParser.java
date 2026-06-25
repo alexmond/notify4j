@@ -55,10 +55,15 @@ public class NotifierUrlParser<E> {
 
 	private final HttpClientConfig httpConfig;
 
+	/** Parser using default HTTP settings ({@link HttpClientConfig#defaults()}). */
 	public NotifierUrlParser(NotificationAdapter<E> adapter, List<String> ignoreChanges) {
 		this(adapter, ignoreChanges, HttpClientConfig.defaults());
 	}
 
+	/**
+	 * Parser with explicit HTTP settings (shared client, timeouts, retry) for the
+	 * channels.
+	 */
 	public NotifierUrlParser(NotificationAdapter<E> adapter, List<String> ignoreChanges, HttpClientConfig httpConfig) {
 		this.idFn = adapter::id;
 		this.statusFn = adapter::status;
@@ -309,6 +314,10 @@ public class NotifierUrlParser<E> {
 	/**
 	 * A parsed channel: the notifier plus the tags that gate which events reach it (empty
 	 * = all).
+	 *
+	 * @param <E> the application's event type
+	 * @param notifier the notifier events are delivered to
+	 * @param tags routing tags; empty means the channel fires for every event
 	 */
 	public record Channel<E>(Notifier<E> notifier, Set<String> tags) {
 

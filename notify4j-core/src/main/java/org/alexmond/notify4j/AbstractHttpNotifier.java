@@ -14,9 +14,11 @@ import java.util.function.Function;
  * Base for HTTP/webhook channel notifiers. Generic over the event type and configured
  * with functions (no subclass-per-event needed): the app supplies how to read the id,
  * status, and human message from its event. Only meaningful status transitions are
- * delivered (see {@link TransitionFilter}). Uses the JDK {@link HttpClient} so this stays
- * Spring-free and library-reusable; the client and timeouts come from a shared
- * {@link HttpClientConfig}.
+ * delivered (see {@link TransitionFilter}). Uses the JDK {@link java.net.http.HttpClient}
+ * so this stays Spring-free and library-reusable; the client, timeouts, and retry policy
+ * come from a shared {@link HttpClientConfig}.
+ *
+ * @param <E> the application's event type
  */
 public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 

@@ -12,7 +12,8 @@ import org.springframework.mail.javamail.JavaMailSender;
  * Unlike the URL channels this lives in the starter (it is Spring-mail-coupled and SMTP
  * is configured via the standard {@code spring.mail.*} properties, not a channel URL).
  * Applies the same {@link TransitionFilter} as the other channels so it fires on real
- * status changes only.
+ * status changes only. The subject is {@code subjectPrefix + " " + status} and the body
+ * is the message.
  *
  * @param <E> the application's event type
  */
@@ -34,6 +35,16 @@ public class EmailNotifier<E> extends AbstractEventNotifier<E> {
 
 	private final TransitionFilter filter;
 
+	/**
+	 * @param mailSender Spring mail sender (SMTP from {@code spring.mail.*})
+	 * @param from from address; {@code null}/blank falls back to the mail defaults
+	 * @param to recipients; the channel is inactive while empty
+	 * @param subjectPrefix prepended to the subject ({@code null} treated as empty)
+	 * @param idFn reads the entity id (transition key) from an event
+	 * @param statusFn reads the status from an event (used as the subject)
+	 * @param messageFn reads the human message from an event (used as the body)
+	 * @param ignoreChanges transition patterns to suppress (see {@link TransitionFilter})
+	 */
 	public EmailNotifier(JavaMailSender mailSender, String from, List<String> to, String subjectPrefix,
 			Function<E, Object> idFn, Function<E, String> statusFn, Function<E, String> messageFn,
 			List<String> ignoreChanges) {

@@ -22,9 +22,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *     enabled: true          # deliver off the caller thread
  * </pre>
  *
- * The default {@code ignore-changes} suppresses transitions into non-terminal states, so
- * channels fire on terminal SUCCESS/FAILED rather than PENDING/RUNNING. See also
- * {@link Http} (timeouts + retry) and {@link Async} (non-blocking delivery).
+ * The default {@code ignore-changes} suppresses transitions into non-terminal states
+ * ({@code PENDING}/{@code RUNNING}/{@code ASSIGNED}), so channels fire on terminal
+ * SUCCESS/FAILED rather than intermediate states. See also {@link Http} (timeouts +
+ * retry) and {@link Async} (non-blocking delivery).
  */
 @ConfigurationProperties("notify4j")
 public class NotificationProperties {

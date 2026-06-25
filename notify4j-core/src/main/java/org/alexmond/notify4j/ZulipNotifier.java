@@ -13,6 +13,8 @@ import java.util.function.Function;
  * {@code type=stream}/{@code to}/ {@code topic}/{@code content} with HTTP Basic auth from
  * the bot email + API key). The message becomes the content; {@code baseUrl} is the Zulip
  * host (cloud or self-hosted).
+ *
+ * @param <E> the application's event type
  */
 public class ZulipNotifier<E> extends AbstractHttpNotifier<E> {
 

@@ -6,6 +6,8 @@ import java.util.function.Function;
 /**
  * Posts to the Telegram Bot API ({@code POST {baseUrl}/bot{token}/sendMessage} with
  * {@code {"chat_id":…,"text":…}}). {@code baseUrl} is configurable for testing.
+ *
+ * @param <E> the application's event type
  */
 public class TelegramNotifier<E> extends AbstractHttpNotifier<E> {
 

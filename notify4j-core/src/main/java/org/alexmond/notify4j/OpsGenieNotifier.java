@@ -8,6 +8,8 @@ import java.util.function.Function;
  * Creates an alert via the OpsGenie Alert API ({@code POST {endpoint}/v2/alerts} with a
  * {@code GenieKey} authorization header). The id becomes the {@code alias} so repeated
  * failures for the same subject de-duplicate into one alert.
+ *
+ * @param <E> the application's event type
  */
 public class OpsGenieNotifier<E> extends AbstractHttpNotifier<E> {
 
