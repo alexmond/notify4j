@@ -46,9 +46,8 @@ class NotificationMetricsTest {
 				return e;
 			}
 		};
-		Notifications<String> facade = new Notifications<>(List.of(), adapter, List.of(new TestNotifier()), List.of(),
-				false);
-		facade.setMetrics(metrics);
+		Notifications<String> facade = new Notifications<>(List.of(), adapter, List.of(new TestNotifier()),
+				NotificationsConfig.builder().includeLog(false).metrics(metrics).build());
 
 		facade.send("hello");
 

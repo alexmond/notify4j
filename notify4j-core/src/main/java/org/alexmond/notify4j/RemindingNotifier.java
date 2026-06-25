@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
  * {@link #checkReminders(Instant)} is the testable core; {@link #start()}/{@link #stop()}
  * schedule it on a daemon thread.
  */
-public class RemindingNotifier<E> implements Notifier<E> {
+public class RemindingNotifier<E> implements Notifier<E>, AutoCloseable {
 
 	private static final Logger log = LoggerFactory.getLogger(RemindingNotifier.class);
 
@@ -112,6 +112,15 @@ public class RemindingNotifier<E> implements Notifier<E> {
 		finally {
 			schedulerLock.unlock();
 		}
+	}
+
+	/**
+	 * Equivalent to {@link #stop()} — lets {@link Notifications#close()} stop the
+	 * scheduler.
+	 */
+	@Override
+	public void close() {
+		stop();
 	}
 
 	/** Stop the scheduler (if running). Idempotent; safe to call from a shutdown hook. */

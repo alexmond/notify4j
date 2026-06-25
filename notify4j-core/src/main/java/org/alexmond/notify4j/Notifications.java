@@ -20,12 +20,19 @@ import org.slf4j.LoggerFactory;
  *
  * <p>
  * Spring-free: the {@code spring-boot-starter} wires one of these as a bean from
- * {@code notify4j.urls}.
+ * {@code notify4j.urls}. Behaviour is configured by an immutable
+ * {@link NotificationsConfig}.
+ * </p>
+ *
+ * <p>
+ * {@link AutoCloseable}: {@link #close()} closes any channel that holds resources (e.g. a
+ * {@link RemindingNotifier}); the config's {@link NotificationsConfig#executor()
+ * executor} is caller-owned and is not shut down by the facade.
  * </p>
  *
  * @param <E> the application's event type
  */
-public class Notifications<E> {
+public class Notifications<E> implements AutoCloseable {
 
 	private static final Logger log = LoggerFactory.getLogger(Notifications.class);
 
@@ -42,61 +49,61 @@ public class Notifications<E> {
 	private NotificationMetrics metrics = NotificationMetrics.NOOP;
 
 	/**
+	 * Facade for {@code urls} with all defaults ({@link NotificationsConfig#defaults()}).
+	 */
+	public Notifications(List<String> urls, NotificationAdapter<E> adapter) {
+		this(urls, adapter, List.of(), NotificationsConfig.defaults());
+	}
+
+	/** Facade for {@code urls} with the given config. */
+	public Notifications(List<String> urls, NotificationAdapter<E> adapter, NotificationsConfig config) {
+		this(urls, adapter, List.of(), config);
+	}
+
+	/**
 	 * @param urls channel URLs (see {@link NotifierUrlParser}); {@code null}/blank
 	 * entries skipped
 	 * @param adapter reads id/status/message from the event
 	 * @param extraNotifiers additional programmatic notifiers to fan out to (untagged;
 	 * may be {@code null})
-	 * @param ignoreChanges transition patterns to suppress (applied per channel)
-	 * @param includeLog whether to add a {@link LoggingNotifier} sink (always-on default)
+	 * @param config delivery settings — ignore-changes, log sink, HTTP, executor, metrics
 	 */
 	public Notifications(List<String> urls, NotificationAdapter<E> adapter, List<? extends Notifier<E>> extraNotifiers,
-			List<String> ignoreChanges, boolean includeLog) {
-		this(urls, adapter, extraNotifiers, ignoreChanges, includeLog, HttpClientConfig.defaults(), null);
-	}
-
-	/**
-	 * As above, with explicit {@link HttpClientConfig} (shared HTTP client + timeouts)
-	 * for the webhook-style channels.
-	 */
-	public Notifications(List<String> urls, NotificationAdapter<E> adapter, List<? extends Notifier<E>> extraNotifiers,
-			List<String> ignoreChanges, boolean includeLog, HttpClientConfig httpConfig) {
-		this(urls, adapter, extraNotifiers, ignoreChanges, includeLog, httpConfig, null);
-	}
-
-	/**
-	 * As above, with an optional {@link Executor}: when non-{@code null}, every channel
-	 * is wrapped in an {@link AsyncNotifier} so {@link #send} dispatches off the caller's
-	 * thread and a slow channel can't block the caller or its siblings. {@code null}
-	 * delivers synchronously.
-	 */
-	public Notifications(List<String> urls, NotificationAdapter<E> adapter, List<? extends Notifier<E>> extraNotifiers,
-			List<String> ignoreChanges, boolean includeLog, HttpClientConfig httpConfig, Executor executor) {
+			NotificationsConfig config) {
+		this.metrics = config.metrics();
+		Executor executor = config.executor();
 		UnaryOperator<Notifier<E>> wrap = (executor != null) ? (n) -> new AsyncNotifier<>(n, executor) : (n) -> n;
-		if (includeLog) {
-			Notifier<E> sink = new LoggingNotifier<>();
-			sinks.add(sink);
-			channels.add(new Channel<>(wrap.apply(sink), Set.of()));
+		if (config.includeLog()) {
+			register(new LoggingNotifier<>(), Set.of(), wrap);
 		}
 		if (extraNotifiers != null) {
 			for (Notifier<E> n : extraNotifiers) {
-				sinks.add(n);
-				channels.add(new Channel<>(wrap.apply(n), Set.of()));
+				register(n, Set.of(), wrap);
 			}
 		}
 		if (urls != null) {
-			NotifierUrlParser<E> parser = new NotifierUrlParser<>(adapter, ignoreChanges, httpConfig);
+			NotifierUrlParser<E> parser = new NotifierUrlParser<>(adapter, config.ignoreChanges(), config.http());
 			for (String url : urls) {
 				if (url != null && !url.isBlank()) {
 					Channel<E> channel = parser.parse(url.trim());
-					Notifier<E> raw = channel.notifier();
-					sinks.add(raw);
-					channels.add(new Channel<>(wrap.apply(raw), channel.tags()));
+					register(channel.notifier(), channel.tags(), wrap);
 				}
 			}
 		}
 		log.info("notifications: {} channel(s) configured ({} delivery)", channels.size(),
 				(executor != null) ? "async" : "sync");
+	}
+
+	/**
+	 * Apply metrics to the raw notifier, track it for {@link #close()}, and add the
+	 * (wrapped) channel.
+	 */
+	private void register(Notifier<E> raw, Set<String> tags, UnaryOperator<Notifier<E>> wrap) {
+		if (raw instanceof AbstractEventNotifier<?> aen) {
+			aen.setMetrics(this.metrics);
+		}
+		this.sinks.add(raw);
+		this.channels.add(new Channel<>(wrap.apply(raw), tags));
 	}
 
 	/**
@@ -141,15 +148,22 @@ public class Notifications<E> {
 	}
 
 	/**
-	 * Set the metrics sink for per-channel delivery outcomes, propagating it to every
-	 * channel. The starter wires a Micrometer-backed implementation when a registry is
-	 * present; otherwise this stays {@link NotificationMetrics#NOOP}.
+	 * Close any channel that holds resources (anything {@link AutoCloseable}, e.g. a
+	 * {@link RemindingNotifier}). The configured {@link NotificationsConfig#executor()
+	 * executor} is caller-owned and is <em>not</em> shut down here.
 	 */
-	public void setMetrics(NotificationMetrics metrics) {
-		this.metrics = (metrics != null) ? metrics : NotificationMetrics.NOOP;
-		for (Notifier<E> sink : sinks) {
-			if (sink instanceof AbstractEventNotifier<?> aen) {
-				aen.setMetrics(this.metrics);
+	@Override
+	@SuppressWarnings("PMD.CloseResource") // closing the channels is precisely this
+											// method's job
+	public void close() {
+		for (Notifier<E> sink : this.sinks) {
+			if (sink instanceof AutoCloseable closeable) {
+				try {
+					closeable.close();
+				}
+				catch (Exception ex) {
+					log.warn("closing notifier {} failed: {}", sink.getClass().getSimpleName(), ex.getMessage());
+				}
 			}
 		}
 	}
