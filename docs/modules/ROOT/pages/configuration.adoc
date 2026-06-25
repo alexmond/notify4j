@@ -225,20 +225,23 @@ A *multi-tenant* app instead injects the `NotificationsFactory` (and sets
 auto-configured factory already carries the configured HTTP/async/metrics settings, so
 `factory.create(tenantUrls)` inherits them — prefer that when you can.
 
-When you build the factory *programmatically* (no starter), async, retry, and metrics are
-constructor arguments, not properties. Use the full constructor:
+When you build the factory *programmatically* (no starter), async, retry, and metrics are set
+on a `NotificationsConfig` (builder), not properties:
 
 [source,java]
 ----
 // Shared once, reused across tenants.
-Executor pool = Executors.newFixedThreadPool(4);                  // async delivery
-HttpClientConfig http = HttpClientConfig.of(
-        Duration.ofSeconds(5), Duration.ofSeconds(10),           // connect, read timeouts
-        3, Duration.ofMillis(500));                              // maxAttempts, base backoff
-NotificationMetrics metrics = NotificationMetrics.NOOP;          // or a Micrometer-backed impl
+Executor pool = Executors.newFixedThreadPool(4);                 // async delivery (caller-owned)
+var config = NotificationsConfig.builder()
+        .ignoreChanges(List.of("*:PENDING", "*:RUNNING"))
+        .includeLog(false)
+        .http(HttpClientConfig.of(Duration.ofSeconds(5), Duration.ofSeconds(10),  // connect, read
+                3, Duration.ofMillis(500)))                                       // maxAttempts, backoff
+        .executor(pool)
+        .metrics(NotificationMetrics.NOOP)                       // or a Micrometer-backed impl
+        .build();
 
-var factory = new NotificationsFactory<>(adapter, List.of("*:PENDING", "*:RUNNING"), false,
-        http, pool, metrics);
+var factory = new NotificationsFactory<>(adapter, config);
 
 // per tenant, at request time:
 factory.create(tenant.channelUrls()).send(event, tenant.tags());
@@ -246,11 +249,11 @@ factory.create(tenant.channelUrls()).send(event, tenant.tags());
 
 * `HttpClientConfig.of(connect, read, maxAttempts, retryBackoff)` is the programmatic
 equivalent of `notify4j.http.*` — *retry lives in core*. `maxAttempts=1` disables it.
-* Passing an `Executor` is the equivalent of `notify4j.async.*`; **omit it (or use the shorter
-constructors) and the facade is synchronous** — a slow channel blocks the caller. Reuse one
-pool across tenants and shut it down on app stop.
-* Implement `NotificationMetrics` (or reuse the starter's Micrometer pattern) and pass it; the
-starter only meters *its* facade, not a hand-built one.
-* The short `NotificationsFactory(adapter, ignoreChanges, includeLog)` constructor silently
-defaults to 10s timeouts, *single attempt*, *synchronous*, and no metrics — fine for a quick
-start, but call it out so multi-tenant apps don't ship that unintentionally.
+* `.executor(pool)` is the equivalent of `notify4j.async.*`; **omit it and the facade is
+synchronous** — a slow channel blocks the caller. The executor is *caller-owned*: reuse one
+pool across tenants and shut it down on app stop (`Notifications.close()` does not).
+* Implement `NotificationMetrics` (or reuse the starter's Micrometer pattern) and set
+`.metrics(...)`; the starter only meters *its* facade, not a hand-built one.
+* `NotificationsConfig.defaults()` (or `new NotificationsFactory<>(adapter)`) silently gives 10s
+timeouts, *single attempt*, *synchronous*, and no metrics — fine for a quick start, but call it
+out so multi-tenant apps don't ship that unintentionally.

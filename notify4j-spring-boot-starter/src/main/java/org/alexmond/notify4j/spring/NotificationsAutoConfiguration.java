@@ -1,19 +1,18 @@
 package org.alexmond.notify4j.spring;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Executor;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.alexmond.notify4j.HttpClientConfig;
 import org.alexmond.notify4j.NotificationAdapter;
 import org.alexmond.notify4j.NotificationMetrics;
 import org.alexmond.notify4j.Notifications;
+import org.alexmond.notify4j.NotificationsConfig;
 import org.alexmond.notify4j.NotificationsFactory;
 import org.alexmond.notify4j.Notifier;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -51,36 +50,40 @@ public class NotificationsAutoConfiguration {
 	@ConditionalOnMissingBean
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public NotificationsFactory notificationsFactory(NotificationProperties props, NotificationAdapter adapter,
-			@Qualifier("notify4jAsyncExecutor") ObjectProvider<ExecutorService> asyncExecutor,
+			@Qualifier("notify4jAsyncExecutor") ObjectProvider<Executor> asyncExecutor,
 			ObjectProvider<NotificationMetrics> metrics) {
 		NotificationProperties.Http http = props.getHttp();
 		HttpClientConfig httpConfig = HttpClientConfig.of(http.getConnectTimeout(), http.getReadTimeout(),
 				http.getMaxAttempts(), http.getRetryBackoff());
-		return new NotificationsFactory<>(adapter, props.getIgnoreChanges(), props.isLog(), httpConfig,
-				asyncExecutor.getIfAvailable(), metrics.getIfAvailable());
+		NotificationsConfig config = NotificationsConfig.builder()
+			.ignoreChanges(props.getIgnoreChanges())
+			.includeLog(props.isLog())
+			.http(httpConfig)
+			.executor(asyncExecutor.getIfAvailable())
+			.metrics(metrics.getIfAvailable())
+			.build();
+		return new NotificationsFactory<>(adapter, config);
 	}
 
 	/**
 	 * Shared daemon thread pool for asynchronous, non-blocking delivery. Present (and so
-	 * delivery is async) unless {@code notify4j.async.enabled=false}. Shut down with the
-	 * context.
+	 * delivery is async) unless {@code notify4j.async.enabled=false}. A
+	 * {@link ThreadPoolTaskExecutor} so Spring shuts it down gracefully on context close
+	 * (waits for in-flight deliveries, then interrupts).
 	 */
-	@Bean(name = "notify4jAsyncExecutor", destroyMethod = "shutdown")
+	@Bean(name = "notify4jAsyncExecutor")
 	@ConditionalOnBean(NotificationAdapter.class)
 	@ConditionalOnProperty(name = "notify4j.async.enabled", matchIfMissing = true)
-	public ExecutorService notify4jAsyncExecutor(NotificationProperties props) {
+	public Executor notify4jAsyncExecutor(NotificationProperties props) {
 		int poolSize = Math.max(1, props.getAsync().getPoolSize());
-		ThreadFactory threads = new ThreadFactory() {
-			private final AtomicInteger counter = new AtomicInteger(1);
-
-			@Override
-			public Thread newThread(Runnable r) {
-				Thread t = new Thread(r, "notify4j-async-" + this.counter.getAndIncrement());
-				t.setDaemon(true);
-				return t;
-			}
-		};
-		return Executors.newFixedThreadPool(poolSize, threads);
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(poolSize);
+		executor.setMaxPoolSize(poolSize);
+		executor.setThreadNamePrefix("notify4j-async-");
+		executor.setDaemon(true);
+		executor.setWaitForTasksToCompleteOnShutdown(true);
+		executor.setAwaitTerminationSeconds(5);
+		return executor;
 	}
 
 	/**

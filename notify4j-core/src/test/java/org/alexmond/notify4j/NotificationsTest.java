@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -33,7 +34,7 @@ class NotificationsTest {
 	@Test
 	void fansOutToExtraNotifiersAndCountsTheLogSink() {
 		Recorder rec = new Recorder();
-		Notifications<Evt> n = new Notifications<>(null, ADAPTER, List.of(rec), List.of(), true);
+		Notifications<Evt> n = new Notifications<>(null, ADAPTER, List.of(rec), NotificationsConfig.defaults());
 
 		// log sink + the one extra notifier
 		assertThat(n.channelCount()).isEqualTo(2);
@@ -48,7 +49,8 @@ class NotificationsTest {
 		Notifier<Evt> boom = (e) -> {
 			throw new RuntimeException("boom");
 		};
-		Notifications<Evt> n = new Notifications<>(null, ADAPTER, List.of(boom, rec), List.of(), false);
+		Notifications<Evt> n = new Notifications<>(null, ADAPTER, List.of(boom, rec),
+				NotificationsConfig.builder().includeLog(false).build());
 
 		n.send(new Evt(1, "FAILED", "p"));
 		assertThat(rec.seen).hasSize(1);
@@ -57,7 +59,8 @@ class NotificationsTest {
 	@Test
 	void runtimeMuteSuppressesUntilRemoved() {
 		Recorder rec = new Recorder();
-		Notifications<Evt> n = new Notifications<>(null, ADAPTER, List.of(rec), List.of(), false);
+		Notifications<Evt> n = new Notifications<>(null, ADAPTER, List.of(rec),
+				NotificationsConfig.builder().includeLog(false).build());
 
 		n.addFilter(new ExpiringFilter<>("mute-p", (e) -> e.name().equals("p"), Instant.now().plusSeconds(60)));
 		n.send(new Evt(1, "FAILED", "p")); // muted
@@ -72,7 +75,8 @@ class NotificationsTest {
 
 	@Test
 	void addNotifierRegistersAnUntaggedChannelAtRuntime() {
-		Notifications<Evt> n = new Notifications<>(null, ADAPTER, List.of(), List.of(), false);
+		Notifications<Evt> n = new Notifications<>(null, ADAPTER, List.of(),
+				NotificationsConfig.builder().includeLog(false).build());
 		assertThat(n.channelCount()).isZero();
 
 		Recorder rec = new Recorder();
@@ -84,7 +88,8 @@ class NotificationsTest {
 
 	@Test
 	void factoryBuildsFacadesWithSharedDefaults() {
-		NotificationsFactory<Evt> factory = new NotificationsFactory<>(ADAPTER, List.of("*:RUNNING"), true);
+		NotificationsFactory<Evt> factory = new NotificationsFactory<>(ADAPTER,
+				NotificationsConfig.builder().ignoreChanges(List.of("*:RUNNING")).build());
 		assertThat(factory.adapter()).isSameAs(ADAPTER);
 
 		Recorder rec = new Recorder();
@@ -93,6 +98,39 @@ class NotificationsTest {
 
 		Notifications<Evt> plain = factory.create(List.of());
 		assertThat(plain.channelCount()).isEqualTo(1); // just the log sink
+	}
+
+	@Test
+	void executorConfigDeliversThroughTheAsyncWrapper() {
+		Recorder rec = new Recorder();
+		// an inline executor exercises the AsyncNotifier wrapping path synchronously
+		Notifications<Evt> n = new Notifications<>(null, ADAPTER, List.of(rec),
+				NotificationsConfig.builder().includeLog(false).executor(Runnable::run).build());
+
+		n.send(new Evt(1, "SUCCESS", "p"));
+		assertThat(rec.seen).hasSize(1);
+	}
+
+	@Test
+	void closeClosesAutoCloseableChannels() {
+		AtomicBoolean closed = new AtomicBoolean(false);
+		class CloseableNotifier implements Notifier<Evt>, AutoCloseable {
+
+			@Override
+			public void notify(Evt e) {
+			}
+
+			@Override
+			public void close() {
+				closed.set(true);
+			}
+
+		}
+		Notifications<Evt> n = new Notifications<>(null, ADAPTER, List.of(new CloseableNotifier()),
+				NotificationsConfig.builder().includeLog(false).build());
+
+		n.close();
+		assertThat(closed).isTrue();
 	}
 
 	record Evt(long id, String status, String name) {

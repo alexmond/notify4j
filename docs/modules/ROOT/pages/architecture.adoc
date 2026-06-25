@@ -96,11 +96,14 @@ The core has no Spring dependency. Build a facade directly:
 
 [source,java]
 ----
+var config = NotificationsConfig.builder()
+        .ignoreChanges(List.of("*:RUNNING"))
+        .build();                // log sink on, synchronous, default HTTP, no metrics
 var notifications = new Notifications<>(
-        List.of("slack://...", "pagerduty://<key>?tags=failed"),
-        adapter,                 // your NotificationAdapter<E>
-        List.of(),               // extra programmatic notifiers
-        List.of("*:RUNNING"),    // ignore-changes
-        true);                   // include the logging sink
+        List.of("slack://...", "pagerduty://<key>?tags=failed"), adapter, config);
 notifications.send(event);
+// notifications.close();        // closes any resource-holding channel (e.g. reminders)
 ----
+
+Options (executor for async delivery, retry/timeouts, metrics) are set on the
+`NotificationsConfig` builder rather than constructor arguments.

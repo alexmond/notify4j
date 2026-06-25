@@ -1,5 +1,18 @@
 = Changelog
 
+== Unreleased
+
+* *Breaking (API, toward 1.0):* the `Notifications` / `NotificationsFactory` telescoping
+  constructors are replaced by an immutable, builder-built `NotificationsConfig`
+  (ignore-changes, log sink, HTTP, executor, metrics). Use
+  `new Notifications<>(urls, adapter, config)` / `new NotificationsFactory<>(adapter, config)`;
+  `Notifications.setMetrics(...)` is removed (set `.metrics(...)` on the config).
+* `Notifications` is now `AutoCloseable`: `close()` closes resource-holding channels (e.g. a
+  `RemindingNotifier`, which is now `AutoCloseable`). The config executor is caller-owned and is
+  not shut down by the facade.
+* The starter's async executor is now a `ThreadPoolTaskExecutor`, shut down gracefully on context
+  close (waits for in-flight deliveries, then interrupts).
+
 == 0.7.0 (2026-06-25)
 
 * *Security:* channel URLs carry secrets (Telegram/Gotify tokens in the URL, opaque
