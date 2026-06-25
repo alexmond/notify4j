@@ -4,7 +4,7 @@ version: true
 start_page: ROOT:index.adoc
 asciidoc:
   attributes:
-    notify4j-version: 0.6.0
+    notify4j-version: 0.7.0
     toc: left
     sectnums: ''
     author: 'Alexander Mondshain'
