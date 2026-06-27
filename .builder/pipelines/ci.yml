@@ -1,0 +1,20 @@
+name: notify4j CI
+on:
+  - push
+  - manual
+push:
+  branches:
+    - main
+jobs:
+  build:
+    image: eclipse-temurin:17-jdk
+    timeout: 30m
+    cache:
+      key: m2-notify4j
+      paths:
+        - .m2/repository
+    steps:
+      - name: checkout
+        run: git clone --depth 1 https://github.com/alexmond/notify4j.git .
+      - name: build
+        run: ./mvnw -B verify -Pdefault --no-transfer-progress -Dmaven.repo.local=.m2/repository
