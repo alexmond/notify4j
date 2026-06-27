@@ -1,0 +1,25 @@
+name: notify4j Release
+on:
+  - manual
+jobs:
+  release:
+    image: eclipse-temurin:17-jdk
+    timeout: 30m
+    secrets:
+      - OSSRH_USERNAME
+      - OSSRH_PASSWORD
+      - GPG_PASSPHRASE
+      - GPG_PRIVATE_KEY
+    cache:
+      key: m2-notify4j
+      paths:
+        - .m2/repository
+    steps:
+      - name: checkout
+        run: git clone --depth 1 https://github.com/alexmond/notify4j.git .
+      - name: import-gpg-key
+        run: printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --import
+      - name: verify
+        run: ./mvnw --batch-mode verify -Pdefault --no-transfer-progress -Dmaven.repo.local=.m2/repository
+      - name: deploy
+        run: ./mvnw --batch-mode clean deploy -Prelease -Dgpg.passphrase="$GPG_PASSPHRASE" --no-transfer-progress -Dmaven.repo.local=.m2/repository
