@@ -6,10 +6,13 @@ to run.
 == Highlights
 
 * Apprise/shoutrrr-style URL channel config, natively on the JVM (`notify4j.urls`).
-* Status-transition filtering, runtime mute, and reminders.
+* Status-transition filtering, runtime mute, and reminders (reminders via the programmatic
+  `RemindingNotifier`; starter properties planned for 1.0.x).
 * Spring-free core + a thin Spring Boot starter.
 * Channels: Slack, Teams, Discord, Mattermost, Rocket.Chat, Google Chat, Telegram, webhook,
-  ntfy, Gotify, PagerDuty, OpsGenie, email.
+  ntfy, Gotify, Pushover, Pushbullet, SMS (Twilio), Signal, WhatsApp, Zulip, PagerDuty,
+  OpsGenie, and email.
+* Optional per-event title and severity (mapped to each channel's native priority).
 
 == Next
 
