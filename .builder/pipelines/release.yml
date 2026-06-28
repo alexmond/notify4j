@@ -1,6 +1,7 @@
 name: notify4j Release
 on:
   - manual
+checkout: true
 jobs:
   release:
     image: eclipse-temurin:17-jdk
@@ -15,8 +16,6 @@ jobs:
       paths:
         - .m2/repository
     steps:
-      - name: checkout
-        run: git clone --depth 1 https://github.com/alexmond/notify4j.git .
       - name: import-gpg-key
         run: printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --import
       - name: verify
