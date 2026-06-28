@@ -4,7 +4,8 @@ version: true
 start_page: ROOT:index.adoc
 asciidoc:
   attributes:
-    notify4j-version: 0.7.0
+    api-core: https://javadoc.io/doc/org.alexmond/notify4j-core/latest
+    api-starter: https://javadoc.io/doc/org.alexmond/notify4j-spring-boot-starter/latest
     toc: left
     sectnums: ''
     author: 'Alexander Mondshain'
