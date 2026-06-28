@@ -1,0 +1,22 @@
+version: 2
+updates:
+  # Maven dependencies across the reactor (parent + modules).
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      # Batch routine version bumps into one PR to cut noise; security updates
+      # still come through as their own PRs.
+      maven-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Keep the GitHub Actions used by the workflows current.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
