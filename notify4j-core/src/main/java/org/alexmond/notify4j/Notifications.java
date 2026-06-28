@@ -52,6 +52,11 @@ public class Notifications<E> implements AutoCloseable {
 	private final Executor executor;
 
 	/**
+	 * Re-notifier for entities stuck in a reminder status, or {@code null} when disabled.
+	 */
+	private final RemindingNotifier<E> reminder;
+
+	/**
 	 * Facade for {@code urls} with all defaults ({@link NotificationsConfig#defaults()}).
 	 */
 	public Notifications(List<String> urls, NotificationAdapter<E> adapter) {
@@ -92,8 +97,47 @@ public class Notifications<E> implements AutoCloseable {
 				}
 			}
 		}
-		log.info("notifications: {} channel(s) configured ({} delivery)", channels.size(),
-				(this.executor != null) ? "async" : "sync");
+		this.reminder = buildReminder(adapter, config);
+		log.info("notifications: {} channel(s) configured ({} delivery{})", channels.size(),
+				(this.executor != null) ? "async" : "sync", (this.reminder != null) ? ", reminders on" : "");
+	}
+
+	/**
+	 * Build and start the reminder when configured, or return {@code null}. The reminder
+	 * re-fires a stuck entity to every channel; it first
+	 * {@link AbstractEventNotifier#forgetTransition forgets} that entity's transition
+	 * state so the re-send isn't suppressed by a channel's transition filter as a
+	 * non-change.
+	 */
+	private RemindingNotifier<E> buildReminder(NotificationAdapter<E> adapter, NotificationsConfig config) {
+		if (config.reminderStatuses().isEmpty()) {
+			return null;
+		}
+		java.util.function.Function<E, Object> idFn = adapter::id;
+		Notifier<E> reFire = (event) -> {
+			if (filtering.isMuted(event)) {
+				return;
+			}
+			Object id = idFn.apply(event);
+			for (Notifier<E> sink : this.sinks) {
+				try {
+					if (sink instanceof AbstractEventNotifier<?> aen) {
+						@SuppressWarnings("unchecked")
+						AbstractEventNotifier<E> typed = (AbstractEventNotifier<E>) aen;
+						typed.forgetTransition(id);
+					}
+					sink.notify(event);
+				}
+				catch (RuntimeException ex) {
+					log.warn("reminder via {} failed: {}", sink.getClass().getSimpleName(), ex.getMessage());
+				}
+			}
+		};
+		RemindingNotifier<E> r = new RemindingNotifier<>(reFire, idFn, adapter::status, config.reminderStatuses(),
+				config.reminderPeriod());
+		r.setCheckInterval(config.reminderCheckInterval());
+		r.start();
+		return r;
 	}
 
 	/**
@@ -127,6 +171,14 @@ public class Notifications<E> implements AutoCloseable {
 		if (filtering.isMuted(event)) {
 			return;
 		}
+		deliverToChannels(event, routeTags);
+		if (reminder != null) {
+			// Track (arm/clear) the entity for reminders without re-delivering it.
+			reminder.observe(event);
+		}
+	}
+
+	private void deliverToChannels(E event, Collection<String> routeTags) {
 		for (Channel<E> channel : channels) {
 			if (channel.matches(routeTags)) {
 				try {
@@ -162,6 +214,9 @@ public class Notifications<E> implements AutoCloseable {
 	@SuppressWarnings("PMD.CloseResource") // closing the channels is precisely this
 											// method's job
 	public void close() {
+		if (this.reminder != null) {
+			this.reminder.stop();
+		}
 		for (Notifier<E> sink : this.sinks) {
 			if (sink instanceof AutoCloseable closeable) {
 				try {

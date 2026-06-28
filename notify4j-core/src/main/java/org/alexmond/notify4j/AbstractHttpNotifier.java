@@ -100,6 +100,11 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 	}
 
 	@Override
+	protected void forgetTransition(Object entityId) {
+		filter.forget(entityId);
+	}
+
+	@Override
 	protected void doNotify(E event) {
 		HttpRequest request = buildRequest(event);
 		if (httpConfig.nonBlockingRetry()) {

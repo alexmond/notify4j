@@ -67,6 +67,16 @@ public class RemindingNotifier<E> implements Notifier<E>, AutoCloseable {
 	@Override
 	public void notify(E event) {
 		delegate.notify(event);
+		observe(event);
+	}
+
+	/**
+	 * Arm or clear the reminder for this event's entity <em>without</em> delivering it —
+	 * for callers (e.g. the {@link Notifications} facade) that deliver through their own
+	 * fan-out and only need the reminder to track state. An event in a reminder status
+	 * arms the reminder; any other status clears it.
+	 */
+	public void observe(E event) {
 		Object id = idFn.apply(event);
 		if (reminderStatuses.contains(statusFn.apply(event))) {
 			reminders.put(id, new Reminder<>(event, Instant.now()));

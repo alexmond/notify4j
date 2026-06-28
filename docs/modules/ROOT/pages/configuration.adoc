@@ -73,6 +73,22 @@ without limit and OOM the host.
 | What to do when the pool and queue are both full. `DROP` (default) drops the delivery —
 never blocks the caller; the drop is logged and counted (`outcome=dropped`). `CALLER_RUNS`
 runs it on the caller's thread instead (back-pressure).
+
+| `notify4j.reminders.enabled`
+| `false`
+| Re-notify every channel for an entity that stays in a reminder status until it resolves.
+
+| `notify4j.reminders.statuses`
+| _(empty)_
+| Statuses that arm a reminder (e.g. `FAILED`, `DOWN`). Required when reminders are enabled.
+
+| `notify4j.reminders.period`
+| `1h`
+| How long an entity must stay in a reminder status before it is re-notified.
+
+| `notify4j.reminders.check-interval`
+| `1m`
+| How often the scheduler checks for due reminders.
 |===
 
 A single `HttpClient` is shared across all webhook-style channels (Slack, Teams, Discord,

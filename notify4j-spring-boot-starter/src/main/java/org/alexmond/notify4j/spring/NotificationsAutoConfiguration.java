@@ -1,6 +1,7 @@
 package org.alexmond.notify4j.spring;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -61,12 +62,15 @@ public class NotificationsAutoConfiguration {
 		// thread; with synchronous delivery, keep the blocking retry on the caller.
 		HttpClientConfig httpConfig = HttpClientConfig.of(http.getConnectTimeout(), http.getReadTimeout(),
 				http.getMaxAttempts(), http.getRetryBackoff(), executor != null);
+		NotificationProperties.Reminders reminders = props.getReminders();
+		Set<String> reminderStatuses = reminders.isEnabled() ? Set.copyOf(reminders.getStatuses()) : Set.of();
 		NotificationsConfig config = NotificationsConfig.builder()
 			.ignoreChanges(props.getIgnoreChanges())
 			.includeLog(props.isLog())
 			.http(httpConfig)
 			.executor(executor)
 			.metrics(metrics.getIfAvailable())
+			.reminders(reminderStatuses, reminders.getPeriod(), reminders.getCheckInterval())
 			.build();
 		return new NotificationsFactory<>(adapter, config);
 	}
