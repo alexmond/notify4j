@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
  * Fans an event out to several notifiers, isolating each one's failures.
  *
  * @param <E> the application's event type
+ * @since 1.0.0
  */
 public class CompositeNotifier<E> implements Notifier<E> {
 

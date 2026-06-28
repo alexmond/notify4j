@@ -20,7 +20,7 @@ class EmailNotifierTest {
 
 	private EmailNotifier<Event> notifier(JavaMailSender sender) {
 		return new EmailNotifier<>(sender, "ci@builder.local", List.of("dev@team.local"), "[builder]", Event::id,
-				Event::status, Event::message, List.of("*:RUNNING"));
+				Event::status, Event::message, (e) -> null, List.of("*:RUNNING"));
 	}
 
 	@Test
@@ -46,10 +46,25 @@ class EmailNotifierTest {
 	void doesNothingWithNoRecipients() {
 		JavaMailSender sender = mock(JavaMailSender.class);
 		EmailNotifier<Event> notifier = new EmailNotifier<>(sender, "ci@x", List.of(), "[builder]", Event::id,
-				Event::status, Event::message, List.of());
+				Event::status, Event::message, (e) -> null, List.of());
 
 		notifier.notify(new Event(1L, "SUCCESS", "msg"));
 		verify(sender, never()).send(any(SimpleMailMessage.class));
+	}
+
+	@Test
+	void titleOverridesStatusAsSubjectAndCrlfIsStripped() {
+		JavaMailSender sender = mock(JavaMailSender.class);
+		EmailNotifier<Event> notifier = new EmailNotifier<>(sender, "ci@x", List.of("dev@team.local"), "[notify4j]",
+				Event::id, Event::status, Event::message, (e) -> "Deploy failed\r\nBcc: evil@x", List.of());
+
+		notifier.notify(new Event(1L, "FAILED", "msg"));
+
+		ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+		verify(sender).send(captor.capture());
+		// title is used as the subject; CR/LF are neutralised so no header can be
+		// injected
+		assertThat(captor.getValue().getSubject()).isEqualTo("[notify4j] Deploy failed  Bcc: evil@x");
 	}
 
 	private record Event(Object id, String status, String message) {

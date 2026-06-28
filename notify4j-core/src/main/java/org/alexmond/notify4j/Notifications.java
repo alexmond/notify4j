@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
-import java.util.function.UnaryOperator;
 import org.alexmond.notify4j.NotifierUrlParser.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +30,7 @@ import org.slf4j.LoggerFactory;
  * </p>
  *
  * @param <E> the application's event type
+ * @since 1.0.0
  */
 public class Notifications<E> implements AutoCloseable {
 
@@ -47,6 +47,9 @@ public class Notifications<E> implements AutoCloseable {
 	private final List<Notifier<E>> sinks = new CopyOnWriteArrayList<>();
 
 	private NotificationMetrics metrics = NotificationMetrics.NOOP;
+
+	/** Pool for asynchronous delivery, or {@code null} for synchronous on the caller. */
+	private final Executor executor;
 
 	/**
 	 * Facade for {@code urls} with all defaults ({@link NotificationsConfig#defaults()}).
@@ -71,14 +74,13 @@ public class Notifications<E> implements AutoCloseable {
 	public Notifications(List<String> urls, NotificationAdapter<E> adapter, List<? extends Notifier<E>> extraNotifiers,
 			NotificationsConfig config) {
 		this.metrics = config.metrics();
-		Executor executor = config.executor();
-		UnaryOperator<Notifier<E>> wrap = (executor != null) ? (n) -> new AsyncNotifier<>(n, executor) : (n) -> n;
+		this.executor = config.executor();
 		if (config.includeLog()) {
-			register(new LoggingNotifier<>(), Set.of(), wrap);
+			register(new LoggingNotifier<>(), Set.of());
 		}
 		if (extraNotifiers != null) {
 			for (Notifier<E> n : extraNotifiers) {
-				register(n, Set.of(), wrap);
+				register(n, Set.of());
 			}
 		}
 		if (urls != null) {
@@ -86,24 +88,28 @@ public class Notifications<E> implements AutoCloseable {
 			for (String url : urls) {
 				if (url != null && !url.isBlank()) {
 					Channel<E> channel = parser.parse(url.trim());
-					register(channel.notifier(), channel.tags(), wrap);
+					register(channel.notifier(), channel.tags());
 				}
 			}
 		}
 		log.info("notifications: {} channel(s) configured ({} delivery)", channels.size(),
-				(executor != null) ? "async" : "sync");
+				(this.executor != null) ? "async" : "sync");
 	}
 
 	/**
 	 * Apply metrics to the raw notifier, track it for {@link #close()}, and add the
-	 * (wrapped) channel.
+	 * channel — wrapped in an {@link AsyncNotifier} (carrying the metrics + channel name
+	 * so a queue-full drop is recorded) when an executor is configured.
 	 */
-	private void register(Notifier<E> raw, Set<String> tags, UnaryOperator<Notifier<E>> wrap) {
+	private void register(Notifier<E> raw, Set<String> tags) {
+		String name = raw.getClass().getSimpleName();
 		if (raw instanceof AbstractEventNotifier<?> aen) {
 			aen.setMetrics(this.metrics);
+			name = aen.channelName();
 		}
 		this.sinks.add(raw);
-		this.channels.add(new Channel<>(wrap.apply(raw), tags));
+		Notifier<E> sink = (this.executor != null) ? new AsyncNotifier<>(raw, this.executor, this.metrics, name) : raw;
+		this.channels.add(new Channel<>(sink, tags));
 	}
 
 	/**

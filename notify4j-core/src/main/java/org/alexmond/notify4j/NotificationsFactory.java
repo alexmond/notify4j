@@ -11,6 +11,7 @@ import java.util.List;
  * Spring-free.
  *
  * @param <E> the application's event type
+ * @since 1.0.0
  */
 public class NotificationsFactory<E> {
 

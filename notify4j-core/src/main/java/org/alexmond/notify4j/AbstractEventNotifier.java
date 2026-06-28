@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
  * a {@link NotificationMetrics} sink (default no-op).
  *
  * @param <E> the application's event type
+ * @since 1.0.0
  */
 public abstract class AbstractEventNotifier<E> implements Notifier<E> {
 

@@ -19,6 +19,7 @@ import java.util.function.Function;
  * come from a shared {@link HttpClientConfig}.
  *
  * @param <E> the application's event type
+ * @since 1.0.0
  */
 public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 
@@ -41,14 +42,33 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 
 	protected final Function<E, String> messageFn;
 
+	/** Optional title (may yield {@code null}); defaults to none. */
+	protected final Function<E, String> titleFn;
+
+	/** Optional severity (never {@code null}); defaults to {@link Severity#DEFAULT}. */
+	protected final Function<E, Severity> severityFn;
+
 	protected AbstractHttpNotifier(String url, HttpClientConfig httpConfig, Function<E, Object> idFn,
 			Function<E, String> statusFn, Function<E, String> messageFn, List<String> ignoreChanges) {
+		this(url, httpConfig, idFn, statusFn, messageFn, (e) -> null, (e) -> Severity.DEFAULT, ignoreChanges);
+	}
+
+	/**
+	 * Full constructor including the optional title and severity functions (used by
+	 * channels that map them onto a native field). The other constructors default these
+	 * to "no title" and {@link Severity#DEFAULT}.
+	 */
+	protected AbstractHttpNotifier(String url, HttpClientConfig httpConfig, Function<E, Object> idFn,
+			Function<E, String> statusFn, Function<E, String> messageFn, Function<E, String> titleFn,
+			Function<E, Severity> severityFn, List<String> ignoreChanges) {
 		this.url = url;
 		this.safeUrl = redact(url);
 		this.httpConfig = httpConfig;
 		this.idFn = idFn;
 		this.statusFn = statusFn;
 		this.messageFn = messageFn;
+		this.titleFn = titleFn;
+		this.severityFn = severityFn;
 		this.filter = new TransitionFilter(ignoreChanges);
 	}
 
@@ -59,6 +79,16 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 	protected AbstractHttpNotifier(String url, Function<E, Object> idFn, Function<E, String> statusFn,
 			Function<E, String> messageFn, List<String> ignoreChanges) {
 		this(url, HttpClientConfig.defaults(), idFn, statusFn, messageFn, ignoreChanges);
+	}
+
+	/**
+	 * The title to use, or {@code fallback} when the application supplies none — so a
+	 * channel that historically used the status as its title keeps that behaviour unless
+	 * a title is set.
+	 */
+	protected String resolvedTitle(E event, String fallback) {
+		String t = titleFn.apply(event);
+		return (t != null) ? t : fallback;
 	}
 
 	@Override

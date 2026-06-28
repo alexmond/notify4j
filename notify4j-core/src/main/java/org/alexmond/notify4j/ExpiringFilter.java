@@ -8,6 +8,7 @@ import java.util.function.Predicate;
  * instant.
  *
  * @param <E> the application's event type
+ * @since 1.0.0
  */
 public class ExpiringFilter<E> implements NotificationFilter<E> {
 

@@ -1,17 +1,57 @@
 = Changelog
 
-== Unreleased
+== Unreleased (1.0.0)
 
-* *Breaking (API, toward 1.0):* the `Notifications` / `NotificationsFactory` telescoping
-  constructors are replaced by an immutable, builder-built `NotificationsConfig`
-  (ignore-changes, log sink, HTTP, executor, metrics). Use
-  `new Notifications<>(urls, adapter, config)` / `new NotificationsFactory<>(adapter, config)`;
-  `Notifications.setMetrics(...)` is removed (set `.metrics(...)` on the config).
-* `Notifications` is now `AutoCloseable`: `close()` closes resource-holding channels (e.g. a
-  `RemindingNotifier`, which is now `AutoCloseable`). The config executor is caller-owned and is
-  not shut down by the facade.
-* The starter's async executor is now a `ThreadPoolTaskExecutor`, shut down gracefully on context
-  close (waits for in-flight deliveries, then interrupts).
+*API stability:* this is the 1.0 line. The public API — the `Notifier`,
+`NotificationAdapter`, `NotificationFilter`, and `NotificationMetrics` SPIs; the
+`Notifications` / `NotificationsFactory` / `NotificationsConfig` facade; the value types
+(`Severity`, `HttpClientConfig`); the decorators (`AsyncNotifier`, `CompositeNotifier`,
+`FilteringNotifier`, `RemindingNotifier`, `LoggingNotifier`); the `Abstract*` extension
+points; and the `notify4j.*` properties and the channel-URL grammar — follows semantic
+versioning within 1.x. The `org.alexmond.notify4j.internal` package (the concrete channel
+notifiers) is *not* public API: build channels via URLs, not by constructing those classes.
+Both jars carry an `Automatic-Module-Name` (`org.alexmond.notify4j` / `…spring`).
+
+=== Breaking
+
+* The `Notifications` / `NotificationsFactory` telescoping constructors are replaced by an
+  immutable, builder-built `NotificationsConfig` (ignore-changes, log sink, HTTP, executor,
+  metrics). Use `new Notifications<>(urls, adapter, config)` /
+  `new NotificationsFactory<>(adapter, config)`; `Notifications.setMetrics(...)` is removed
+  (set `.metrics(...)` on the config).
+* The 18 concrete channel notifiers moved to `org.alexmond.notify4j.internal` and are no
+  longer public API. Construct channels via URLs (the supported path), not by instantiating
+  `SlackNotifier` etc. directly.
+
+=== Added
+
+* Optional `title` and `severity` on `NotificationAdapter` (default methods, so existing
+  adapters are unaffected). Channels with a native notion map them — PagerDuty severity (was
+  hard-coded `error`), OpsGenie priority, ntfy/Gotify/Pushover priority + title, and the
+  email subject. A new `Severity` enum (`DEFAULT`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`);
+  `DEFAULT` preserves the previous wire format.
+* `notify4j.async.queue-capacity` (default 1000) and `notify4j.async.rejection-policy`
+  (`DROP` / `CALLER_RUNS`) bound the delivery queue so a backlog can't OOM the host; drops
+  are logged and recorded via `NotificationMetrics.recordDropped`.
+* The WhatsApp Graph API version is overridable per channel (`whatsapp://…?version=v22.0`).
+* IDE configuration metadata for the `notify4j.*` properties (autocomplete + hover docs).
+* `Notifications` is `AutoCloseable`: `close()` closes resource-holding channels (e.g. a
+  `RemindingNotifier`, also `AutoCloseable`). The config executor is caller-owned.
+* `SECURITY.md` with a private disclosure channel and the security/trust model.
+
+=== Changed / fixed
+
+* *Security:* URL-parse errors (thrown at startup) no longer leak the secret-bearing URL —
+  messages keep only the scheme. The shared `HttpClient` pins `Redirect.NEVER`, and a
+  cleartext `+http` on a credential-bearing channel logs a warning. The email subject is
+  CRLF-sanitised.
+* The starter's async executor is a `ThreadPoolTaskExecutor`, shut down gracefully on
+  context close (waits for in-flight deliveries, then interrupts).
+* The channel-URL grammar is documented as a frozen contract (transport suffix, `?tags=`,
+  credential default hosts, the zulip/twilio hand-parse rules).
+
+NOTE: Reminders (`RemindingNotifier`) are available via the core/programmatic API; wiring
+them through `notify4j.*` starter properties is planned for a 1.0.x release.
 
 == 0.7.0 (2026-06-25)
 

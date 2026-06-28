@@ -20,4 +20,28 @@ public interface NotificationAdapter<E> {
 	/** A human-readable message for the notification body. */
 	String message(E event);
 
+	/**
+	 * An optional short title/subject for the notification. Channels that have a title or
+	 * subject field (email, ntfy, Pushover, Gotify) use it; the default is {@code null},
+	 * meaning "no title" — those channels then fall back to their historical behaviour
+	 * (e.g. the status as the title).
+	 * @return the title, or {@code null} for none
+	 * @since 1.0.0
+	 */
+	default String title(E event) {
+		return null;
+	}
+
+	/**
+	 * The optional severity of the notification. Channels with a native priority/severity
+	 * notion (PagerDuty, OpsGenie, ntfy, Pushover, Gotify) map it onto their own scale;
+	 * the rest ignore it. The default is {@link Severity#DEFAULT} so an application that
+	 * does not override this sees unchanged payloads.
+	 * @return the severity; never {@code null}
+	 * @since 1.0.0
+	 */
+	default Severity severity(E event) {
+		return Severity.DEFAULT;
+	}
+
 }

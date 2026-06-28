@@ -7,6 +7,8 @@ package org.alexmond.notify4j;
  * {@code MeterRegistry} is present. Recorded inside {@link AbstractEventNotifier} (where
  * success/failure is known, since a failing channel is swallowed and never rethrown). The
  * default {@link #NOOP} records nothing.
+ *
+ * @since 1.0.0
  */
 public interface NotificationMetrics {
 
@@ -23,6 +25,15 @@ public interface NotificationMetrics {
 	 * change).
 	 */
 	void recordSuppressed(String channel);
+
+	/**
+	 * A delivery on {@code channel} dropped before it ran because the asynchronous
+	 * delivery queue was full (back-pressure). Distinct from {@link #recordFailed}, which
+	 * is a delivery that ran and failed. A {@code default} no-op so existing
+	 * implementations keep compiling.
+	 */
+	default void recordDropped(String channel) {
+	}
 
 	/** No-op metrics; the default until a registry-backed implementation is wired in. */
 	NotificationMetrics NOOP = new NotificationMetrics() {

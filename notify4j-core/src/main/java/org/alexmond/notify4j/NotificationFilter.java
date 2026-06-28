@@ -5,6 +5,7 @@ package org.alexmond.notify4j;
  * {@link FilteringNotifier}.
  *
  * @param <E> the application's event type
+ * @since 1.0.0
  */
 public interface NotificationFilter<E> {
 

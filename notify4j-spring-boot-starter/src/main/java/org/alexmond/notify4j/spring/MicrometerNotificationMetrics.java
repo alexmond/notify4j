@@ -38,6 +38,11 @@ class MicrometerNotificationMetrics implements NotificationMetrics {
 		counter(channel, "suppressed").increment();
 	}
 
+	@Override
+	public void recordDropped(String channel) {
+		counter(channel, "dropped").increment();
+	}
+
 	private Counter counter(String channel, String outcome) {
 		return this.counters.computeIfAbsent(channel + '/' + outcome,
 				(key) -> Counter.builder(METER)

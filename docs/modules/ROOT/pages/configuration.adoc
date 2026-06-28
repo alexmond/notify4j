@@ -62,6 +62,17 @@ or its siblings. Set `false` for synchronous delivery.
 | `notify4j.async.pool-size`
 | `4`
 | Size of the shared async delivery thread pool.
+
+| `notify4j.async.queue-capacity`
+| `1000`
+| Bound on the delivery queue, so a burst or a persistently-slow channel can't grow it
+without limit and OOM the host.
+
+| `notify4j.async.rejection-policy`
+| `DROP`
+| What to do when the pool and queue are both full. `DROP` (default) drops the delivery —
+never blocks the caller; the drop is logged and counted (`outcome=dropped`). `CALLER_RUNS`
+runs it on the caller's thread instead (back-pressure).
 |===
 
 A single `HttpClient` is shared across all webhook-style channels (Slack, Teams, Discord,

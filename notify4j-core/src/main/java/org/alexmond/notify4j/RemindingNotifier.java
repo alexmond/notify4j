@@ -21,6 +21,8 @@ import org.slf4j.LoggerFactory;
  * <p>
  * {@link #checkReminders(Instant)} is the testable core; {@link #start()}/{@link #stop()}
  * schedule it on a daemon thread.
+ *
+ * @since 1.0.0
  */
 public class RemindingNotifier<E> implements Notifier<E>, AutoCloseable {
 

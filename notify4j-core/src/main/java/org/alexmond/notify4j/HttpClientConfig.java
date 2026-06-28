@@ -18,6 +18,7 @@ import java.time.Duration;
  * @param requestTimeout per-request read timeout
  * @param maxAttempts total delivery attempts per send; {@code 1} disables retry
  * @param retryBackoff base backoff between retries (doubled each attempt, capped)
+ * @since 1.0.0
  */
 public record HttpClientConfig(HttpClient client, Duration requestTimeout, int maxAttempts, Duration retryBackoff) {
 
@@ -43,7 +44,13 @@ public record HttpClientConfig(HttpClient client, Duration requestTimeout, int m
 	/** Build a config with the given timeouts and retry policy. */
 	public static HttpClientConfig of(Duration connectTimeout, Duration requestTimeout, int maxAttempts,
 			Duration retryBackoff) {
-		HttpClient client = HttpClient.newBuilder().connectTimeout(connectTimeout).build();
+		// Redirects are pinned to NEVER (rather than relying on the JDK default) so a
+		// credentialed POST can't be bounced by a 3xx to an attacker-chosen host —
+		// channel requests carry secrets in headers/body. Do not relax this.
+		HttpClient client = HttpClient.newBuilder()
+			.connectTimeout(connectTimeout)
+			.followRedirects(HttpClient.Redirect.NEVER)
+			.build();
 		return new HttpClientConfig(client, requestTimeout, Math.max(1, maxAttempts), retryBackoff);
 	}
 

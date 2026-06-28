@@ -1,5 +1,24 @@
 package org.alexmond.notify4j;
 
+import org.alexmond.notify4j.internal.DiscordNotifier;
+import org.alexmond.notify4j.internal.GoogleChatNotifier;
+import org.alexmond.notify4j.internal.GotifyNotifier;
+import org.alexmond.notify4j.internal.MattermostNotifier;
+import org.alexmond.notify4j.internal.NtfyNotifier;
+import org.alexmond.notify4j.internal.OpsGenieNotifier;
+import org.alexmond.notify4j.internal.PagerDutyNotifier;
+import org.alexmond.notify4j.internal.PushbulletNotifier;
+import org.alexmond.notify4j.internal.PushoverNotifier;
+import org.alexmond.notify4j.internal.RocketChatNotifier;
+import org.alexmond.notify4j.internal.SignalNotifier;
+import org.alexmond.notify4j.internal.SlackNotifier;
+import org.alexmond.notify4j.internal.TeamsNotifier;
+import org.alexmond.notify4j.internal.TelegramNotifier;
+import org.alexmond.notify4j.internal.TwilioNotifier;
+import org.alexmond.notify4j.internal.WebhookNotifier;
+import org.alexmond.notify4j.internal.WhatsAppNotifier;
+import org.alexmond.notify4j.internal.ZulipNotifier;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -148,6 +167,44 @@ class NotifierUrlParserTest {
 			.hasMessageContaining("unsupported transport");
 		assertThatThrownBy(() -> parser.parse("no-scheme-here")).isInstanceOf(IllegalArgumentException.class)
 			.hasMessageContaining("missing scheme");
+	}
+
+	@Test
+	void parseErrorsDoNotLeakSecrets() {
+		// A bad URL throws at startup; the message must not carry the token/key/sid into
+		// the boot log. Each of these is malformed and credential-bearing in a different
+		// position (path, query, user-info, authority).
+		record Bad(String url, String secret) {
+		}
+		List<Bad> cases = List.of(new Bad("telegram://api.telegram.org/SECRET-BOT-TOKEN", "SECRET-BOT-TOKEN"),
+				new Bad("pushover://SECRET-APP-TOKEN", "SECRET-APP-TOKEN"),
+				new Bad("twilio://SID:SECRET-AUTH-TOKEN@from", "SECRET-AUTH-TOKEN"),
+				new Bad("whatsapp://SECRET-GRAPH-TOKEN@phone-id", "SECRET-GRAPH-TOKEN"),
+				new Bad("zulip://bot@x.com:SECRET-API-KEY@host", "SECRET-API-KEY"),
+				new Bad("opsgenie+https://", "anything"));
+		for (Bad b : cases) {
+			assertThatThrownBy(() -> parser.parse(b.url())).isInstanceOf(IllegalArgumentException.class)
+				.satisfies((ex) -> assertThat(ex.getMessage()).doesNotContain(b.secret()));
+		}
+	}
+
+	@Test
+	void frozenGrammarEdgeCasesParse() {
+		// zulip: bot email contains '@', so the host is taken from the LAST '@' and the
+		// key
+		// from the last ':' before it.
+		assertThat(notifier("zulip://bot@x.com:apikey@zulip.example.com/general/deploys"))
+			.isInstanceOf(ZulipNotifier.class);
+		// twilio/whatsapp: first '@', and '+' in phone numbers survives.
+		assertThat(notifier("twilio://AC1:tok@+15550000/+15551111")).isInstanceOf(TwilioNotifier.class);
+		assertThat(notifier("whatsapp://tok@PHID/+15551111")).isInstanceOf(WhatsAppNotifier.class);
+		// credential-only schemes fall back to their default host.
+		assertThat(notifier("pagerduty://routing-key")).isInstanceOf(PagerDutyNotifier.class);
+		assertThat(notifier("opsgenie://api-key")).isInstanceOf(OpsGenieNotifier.class);
+		// transport default is https; +http is accepted.
+		assertThat(notifier("webhook+http://localhost:8080/hook")).isInstanceOf(WebhookNotifier.class);
+		// whatsapp version override parses (and is not treated as a routing tag).
+		assertThat(parser.parse("whatsapp://tok@PHID/+15551111?version=v22.0").tags()).isEmpty();
 	}
 
 	private Notifier<Event> notifier(String url) {
