@@ -150,6 +150,25 @@ class NotifierUrlParserTest {
 			.hasMessageContaining("missing scheme");
 	}
 
+	@Test
+	void parseErrorsDoNotLeakSecrets() {
+		// A bad URL throws at startup; the message must not carry the token/key/sid into
+		// the boot log. Each of these is malformed and credential-bearing in a different
+		// position (path, query, user-info, authority).
+		record Bad(String url, String secret) {
+		}
+		List<Bad> cases = List.of(new Bad("telegram://api.telegram.org/SECRET-BOT-TOKEN", "SECRET-BOT-TOKEN"),
+				new Bad("pushover://SECRET-APP-TOKEN", "SECRET-APP-TOKEN"),
+				new Bad("twilio://SID:SECRET-AUTH-TOKEN@from", "SECRET-AUTH-TOKEN"),
+				new Bad("whatsapp://SECRET-GRAPH-TOKEN@phone-id", "SECRET-GRAPH-TOKEN"),
+				new Bad("zulip://bot@x.com:SECRET-API-KEY@host", "SECRET-API-KEY"),
+				new Bad("opsgenie+https://", "anything"));
+		for (Bad b : cases) {
+			assertThatThrownBy(() -> parser.parse(b.url())).isInstanceOf(IllegalArgumentException.class)
+				.satisfies((ex) -> assertThat(ex.getMessage()).doesNotContain(b.secret()));
+		}
+	}
+
 	private Notifier<Event> notifier(String url) {
 		return parser.parse(url).notifier();
 	}

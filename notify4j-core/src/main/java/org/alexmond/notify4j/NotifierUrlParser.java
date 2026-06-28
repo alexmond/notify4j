@@ -79,7 +79,7 @@ public class NotifierUrlParser<E> {
 		}
 		int sep = url.indexOf("://");
 		if (sep < 0) {
-			throw new IllegalArgumentException("notification url missing scheme: " + url);
+			throw new IllegalArgumentException("notification url missing scheme: " + safe(url));
 		}
 		String scheme = url.substring(0, sep).toLowerCase(Locale.ROOT);
 
@@ -91,7 +91,7 @@ public class NotifierUrlParser<E> {
 			transport = scheme.substring(plus + 1);
 		}
 		if (!"http".equals(transport) && !"https".equals(transport)) {
-			throw new IllegalArgumentException("unsupported transport '" + transport + "' in url: " + url);
+			throw new IllegalArgumentException("unsupported transport '" + transport + "' in url: " + safe(url));
 		}
 
 		Set<String> tags = new LinkedHashSet<>();
@@ -129,8 +129,8 @@ public class NotifierUrlParser<E> {
 				String[] ch = credentialAndHost(transport, rest, url, "api.opsgenie.com");
 				yield new OpsGenieNotifier<>(ch[1], ch[0], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
 			}
-			default ->
-				throw new IllegalArgumentException("unknown notification scheme '" + channel + "' in url: " + url);
+			default -> throw new IllegalArgumentException(
+					"unknown notification scheme '" + channel + "' in url: " + safe(url));
 		};
 		return new Channel<>(notifier, Set.copyOf(tags));
 	}
@@ -164,6 +164,23 @@ public class NotifierUrlParser<E> {
 	}
 
 	/**
+	 * Redact a channel URL for error messages. A malformed URL throws during facade
+	 * construction (i.e. at application startup), so the message must not leak the secret
+	 * into the boot log. Channel URLs carry secrets in many positions — a token in the
+	 * path ({@code telegram}), the query ({@code gotify}), the user-info
+	 * ({@code zulip}/{@code twilio}), or the authority itself ({@code pagerduty}/
+	 * {@code pushover}/{@code pushbullet}) — so we keep only the scheme (which names the
+	 * offending channel) and mask everything after it.
+	 */
+	private static String safe(String url) {
+		if (url == null) {
+			return "<none>";
+		}
+		int sep = url.indexOf("://");
+		return (sep < 0) ? "<redacted>" : url.substring(0, sep) + "://…";
+	}
+
+	/**
 	 * Drop any trailing query so it can't land inside a credential/target segment of the
 	 * hand-parsed schemes (the URI-based ones ignore the query already).
 	 */
@@ -177,11 +194,11 @@ public class NotifierUrlParser<E> {
 		String authority = u.getAuthority();
 		String path = u.getPath();
 		if (authority == null || path == null) {
-			throw new IllegalArgumentException("invalid telegram url: " + url);
+			throw new IllegalArgumentException("invalid telegram url: " + safe(url));
 		}
 		String[] seg = path.replaceFirst("^/", "").split("/");
 		if (seg.length < 2 || seg[0].isBlank() || seg[1].isBlank()) {
-			throw new IllegalArgumentException("telegram url needs /<bot-token>/<chat-id>: " + url);
+			throw new IllegalArgumentException("telegram url needs /<bot-token>/<chat-id>: " + safe(url));
 		}
 		String baseUrl = transport + "://" + authority;
 		return new TelegramNotifier<>(baseUrl, seg[0], seg[1], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
@@ -192,11 +209,11 @@ public class NotifierUrlParser<E> {
 		String authority = u.getAuthority();
 		String path = u.getPath();
 		if (authority == null || path == null) {
-			throw new IllegalArgumentException("invalid ntfy url: " + url);
+			throw new IllegalArgumentException("invalid ntfy url: " + safe(url));
 		}
 		String topic = path.replaceFirst("^/", "").split("/")[0];
 		if (topic.isBlank()) {
-			throw new IllegalArgumentException("ntfy url needs /<topic>: " + url);
+			throw new IllegalArgumentException("ntfy url needs /<topic>: " + safe(url));
 		}
 		String baseUrl = transport + "://" + authority;
 		return new NtfyNotifier<>(baseUrl, topic, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
@@ -207,11 +224,11 @@ public class NotifierUrlParser<E> {
 		String authority = u.getAuthority();
 		String path = u.getPath();
 		if (authority == null || path == null) {
-			throw new IllegalArgumentException("invalid gotify url: " + url);
+			throw new IllegalArgumentException("invalid gotify url: " + safe(url));
 		}
 		String token = path.replaceFirst("^/", "").split("/")[0];
 		if (token.isBlank()) {
-			throw new IllegalArgumentException("gotify url needs /<app-token>: " + url);
+			throw new IllegalArgumentException("gotify url needs /<app-token>: " + safe(url));
 		}
 		String baseUrl = transport + "://" + authority;
 		return new GotifyNotifier<>(baseUrl, token, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
@@ -221,7 +238,7 @@ public class NotifierUrlParser<E> {
 		// pushover://<app-token>/<user-key> — both credentials, fixed API host.
 		String[] parts = stripQuery(rest).split("/");
 		if (parts.length < 2 || parts[0].isBlank() || parts[1].isBlank()) {
-			throw new IllegalArgumentException("pushover url needs <app-token>/<user-key>: " + url);
+			throw new IllegalArgumentException("pushover url needs <app-token>/<user-key>: " + safe(url));
 		}
 		String baseUrl = transport + "://api.pushover.net";
 		return new PushoverNotifier<>(baseUrl, parts[0], parts[1], httpConfig, idFn, statusFn, messageFn,
@@ -235,13 +252,13 @@ public class NotifierUrlParser<E> {
 		rest = stripQuery(rest);
 		int at = rest.indexOf('@');
 		if (at < 0) {
-			throw new IllegalArgumentException("twilio url needs <sid>:<token>@<from>/<to>: " + url);
+			throw new IllegalArgumentException("twilio url needs <sid>:<token>@<from>/<to>: " + safe(url));
 		}
 		String[] sidToken = rest.substring(0, at).split(":", 2);
 		String[] fromTo = rest.substring(at + 1).split("/");
 		if (sidToken.length < 2 || fromTo.length < 2 || sidToken[0].isBlank() || sidToken[1].isBlank()
 				|| fromTo[0].isBlank() || fromTo[1].isBlank()) {
-			throw new IllegalArgumentException("twilio url needs <sid>:<token>@<from>/<to>: " + url);
+			throw new IllegalArgumentException("twilio url needs <sid>:<token>@<from>/<to>: " + safe(url));
 		}
 		String baseUrl = transport + "://api.twilio.com";
 		return new TwilioNotifier<>(baseUrl, sidToken[0], sidToken[1], fromTo[0], fromTo[1], httpConfig, idFn, statusFn,
@@ -253,12 +270,12 @@ public class NotifierUrlParser<E> {
 		rest = stripQuery(rest);
 		int slash = rest.indexOf('/');
 		if (slash < 0) {
-			throw new IllegalArgumentException("signal url needs <host>/<from>/<to>: " + url);
+			throw new IllegalArgumentException("signal url needs <host>/<from>/<to>: " + safe(url));
 		}
 		String authority = rest.substring(0, slash);
 		String[] seg = rest.substring(slash + 1).split("/");
 		if (authority.isBlank() || seg.length < 2 || seg[0].isBlank() || seg[1].isBlank()) {
-			throw new IllegalArgumentException("signal url needs <host>/<from>/<to>: " + url);
+			throw new IllegalArgumentException("signal url needs <host>/<from>/<to>: " + safe(url));
 		}
 		String baseUrl = transport + "://" + authority;
 		return new SignalNotifier<>(baseUrl, seg[0], seg[1], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
@@ -269,12 +286,12 @@ public class NotifierUrlParser<E> {
 		rest = stripQuery(rest);
 		int at = rest.indexOf('@');
 		if (at < 0) {
-			throw new IllegalArgumentException("whatsapp url needs <token>@<phone-id>/<to>: " + url);
+			throw new IllegalArgumentException("whatsapp url needs <token>@<phone-id>/<to>: " + safe(url));
 		}
 		String token = rest.substring(0, at);
 		String[] idTo = rest.substring(at + 1).split("/");
 		if (token.isBlank() || idTo.length < 2 || idTo[0].isBlank() || idTo[1].isBlank()) {
-			throw new IllegalArgumentException("whatsapp url needs <token>@<phone-id>/<to>: " + url);
+			throw new IllegalArgumentException("whatsapp url needs <token>@<phone-id>/<to>: " + safe(url));
 		}
 		String baseUrl = transport + "://graph.facebook.com";
 		return new WhatsAppNotifier<>(baseUrl, token, idTo[0], idTo[1], httpConfig, idFn, statusFn, messageFn,
@@ -289,14 +306,16 @@ public class NotifierUrlParser<E> {
 		int at = rest.lastIndexOf('@');
 		int colon = (at < 0) ? -1 : rest.lastIndexOf(':', at);
 		if (at < 0 || colon < 0) {
-			throw new IllegalArgumentException("zulip url needs <bot-email>:<api-key>@<host>/<stream>/<topic>: " + url);
+			throw new IllegalArgumentException(
+					"zulip url needs <bot-email>:<api-key>@<host>/<stream>/<topic>: " + safe(url));
 		}
 		String email = rest.substring(0, colon);
 		String key = rest.substring(colon + 1, at);
 		String[] hostPath = rest.substring(at + 1).split("/");
 		if (email.isBlank() || key.isBlank() || hostPath.length < 3 || hostPath[0].isBlank() || hostPath[1].isBlank()
 				|| hostPath[2].isBlank()) {
-			throw new IllegalArgumentException("zulip url needs <bot-email>:<api-key>@<host>/<stream>/<topic>: " + url);
+			throw new IllegalArgumentException(
+					"zulip url needs <bot-email>:<api-key>@<host>/<stream>/<topic>: " + safe(url));
 		}
 		String baseUrl = transport + "://" + hostPath[0];
 		return new ZulipNotifier<>(baseUrl, email, key, hostPath[1], hostPath[2], httpConfig, idFn, statusFn, messageFn,
@@ -319,7 +338,7 @@ public class NotifierUrlParser<E> {
 			return new String[] { userInfo, transport + "://" + authority };
 		}
 		if (host == null || host.isBlank()) {
-			throw new IllegalArgumentException("missing credential in url: " + url);
+			throw new IllegalArgumentException("missing credential in url: " + safe(url));
 		}
 		return new String[] { host, transport + "://" + defaultHost };
 	}
