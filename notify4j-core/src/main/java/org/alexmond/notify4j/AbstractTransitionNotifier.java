@@ -34,6 +34,11 @@ public abstract class AbstractTransitionNotifier<E> extends AbstractEventNotifie
 		filter.forget(entityId);
 	}
 
+	@Override
+	protected void forgetTransition(Object entityId) {
+		filter.forget(entityId);
+	}
+
 	public List<String> getIgnoreChanges() {
 		return filter.getIgnoreChanges();
 	}

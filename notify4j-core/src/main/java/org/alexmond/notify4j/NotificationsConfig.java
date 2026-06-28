@@ -1,6 +1,8 @@
 package org.alexmond.notify4j;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 /**
@@ -37,12 +39,21 @@ public final class NotificationsConfig {
 
 	private final NotificationMetrics metrics;
 
+	private final Set<String> reminderStatuses;
+
+	private final Duration reminderPeriod;
+
+	private final Duration reminderCheckInterval;
+
 	private NotificationsConfig(Builder builder) {
 		this.ignoreChanges = List.copyOf(builder.ignoreChanges);
 		this.includeLog = builder.includeLog;
 		this.http = (builder.http != null) ? builder.http : HttpClientConfig.defaults();
 		this.executor = builder.executor;
 		this.metrics = (builder.metrics != null) ? builder.metrics : NotificationMetrics.NOOP;
+		this.reminderStatuses = Set.copyOf(builder.reminderStatuses);
+		this.reminderPeriod = builder.reminderPeriod;
+		this.reminderCheckInterval = builder.reminderCheckInterval;
 	}
 
 	/**
@@ -90,6 +101,24 @@ public final class NotificationsConfig {
 		return this.metrics;
 	}
 
+	/**
+	 * Statuses that arm a reminder (re-notify while an entity stays in one of them);
+	 * empty means reminders are disabled.
+	 */
+	public Set<String> reminderStatuses() {
+		return this.reminderStatuses;
+	}
+
+	/** How long an entity must stay in a reminder status before it is re-notified. */
+	public Duration reminderPeriod() {
+		return this.reminderPeriod;
+	}
+
+	/** How often the reminder scheduler checks for due reminders. */
+	public Duration reminderCheckInterval() {
+		return this.reminderCheckInterval;
+	}
+
 	/** Builder for {@link NotificationsConfig}. */
 	public static final class Builder {
 
@@ -102,6 +131,12 @@ public final class NotificationsConfig {
 		private Executor executor;
 
 		private NotificationMetrics metrics = NotificationMetrics.NOOP;
+
+		private Set<String> reminderStatuses = Set.of();
+
+		private Duration reminderPeriod = Duration.ofHours(1);
+
+		private Duration reminderCheckInterval = Duration.ofMinutes(1);
 
 		private Builder() {
 		}
@@ -129,6 +164,22 @@ public final class NotificationsConfig {
 
 		public Builder metrics(NotificationMetrics metrics) {
 			this.metrics = metrics;
+			return this;
+		}
+
+		/**
+		 * Enable reminders: re-notify all channels for an entity that stays in one of
+		 * {@code statuses}, every {@code period}, checked every {@code checkInterval}. An
+		 * empty/{@code null} {@code statuses} disables reminders.
+		 */
+		public Builder reminders(Set<String> statuses, Duration period, Duration checkInterval) {
+			this.reminderStatuses = (statuses != null) ? statuses : Set.of();
+			if (period != null) {
+				this.reminderPeriod = period;
+			}
+			if (checkInterval != null) {
+				this.reminderCheckInterval = checkInterval;
+			}
 			return this;
 		}
 

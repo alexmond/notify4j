@@ -33,6 +33,13 @@ Both jars carry an `Automatic-Module-Name` (`org.alexmond.notify4j` / `…spring
 * `notify4j.async.queue-capacity` (default 1000) and `notify4j.async.rejection-policy`
   (`DROP` / `CALLER_RUNS`) bound the delivery queue so a backlog can't OOM the host; drops
   are logged and recorded via `NotificationMetrics.recordDropped`.
+* Reminders are configurable from the starter (`notify4j.reminders.*`): re-notify every
+  channel for an entity stuck in a configured status until it resolves. The facade forgets
+  the entity's transition state before each reminder so the repeat isn't suppressed as a
+  non-change; the scheduler is started/stopped with the facade lifecycle.
+* Non-blocking retry: with async delivery, transient-failure backoff is scheduled
+  off-thread (via the async HTTP client) so it never ties up the delivery pool
+  (`notify4j.http` retry is unchanged for synchronous use).
 * The WhatsApp Graph API version is overridable per channel (`whatsapp://…?version=v22.0`).
 * IDE configuration metadata for the `notify4j.*` properties (autocomplete + hover docs).
 * `Notifications` is `AutoCloseable`: `close()` closes resource-holding channels (e.g. a
@@ -49,9 +56,6 @@ Both jars carry an `Automatic-Module-Name` (`org.alexmond.notify4j` / `…spring
   context close (waits for in-flight deliveries, then interrupts).
 * The channel-URL grammar is documented as a frozen contract (transport suffix, `?tags=`,
   credential default hosts, the zulip/twilio hand-parse rules).
-
-NOTE: Reminders (`RemindingNotifier`) are available via the core/programmatic API; wiring
-them through `notify4j.*` starter properties is planned for a 1.0.x release.
 
 == 0.7.0 (2026-06-25)
 

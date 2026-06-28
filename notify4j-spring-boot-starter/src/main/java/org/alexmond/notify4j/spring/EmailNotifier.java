@@ -70,6 +70,11 @@ public class EmailNotifier<E> extends AbstractEventNotifier<E> {
 	}
 
 	@Override
+	protected void forgetTransition(Object entityId) {
+		filter.forget(entityId);
+	}
+
+	@Override
 	protected void doNotify(E event) {
 		SimpleMailMessage message = new SimpleMailMessage();
 		if (from != null && !from.isBlank()) {

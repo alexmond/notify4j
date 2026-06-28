@@ -82,6 +82,17 @@ public abstract class AbstractEventNotifier<E> implements Notifier<E> {
 		return getClass().getSimpleName();
 	}
 
+	/**
+	 * Drop any tracked transition state for {@code entityId}, so its next event delivers
+	 * as a fresh transition rather than being suppressed as a non-change. Used by
+	 * reminders to re-fire an entity stuck in the same status. Default no-op; overridden
+	 * by notifiers that apply a {@link TransitionFilter}.
+	 */
+	@SuppressWarnings("PMD.EmptyMethodInAbstractClassShouldBeAbstract") // intentional
+																		// no-op default
+	protected void forgetTransition(Object entityId) {
+	}
+
 	public boolean isEnabled() {
 		return enabled;
 	}

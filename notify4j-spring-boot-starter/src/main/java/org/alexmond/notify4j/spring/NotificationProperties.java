@@ -56,6 +56,9 @@ public class NotificationProperties {
 	/** Asynchronous (non-blocking) delivery settings. */
 	private final Async async = new Async();
 
+	/** Reminder (re-notify for stuck entities) settings; off unless enabled. */
+	private final Reminders reminders = new Reminders();
+
 	public List<String> getUrls() {
 		return urls;
 	}
@@ -90,6 +93,10 @@ public class NotificationProperties {
 
 	public Async getAsync() {
 		return async;
+	}
+
+	public Reminders getReminders() {
+		return reminders;
 	}
 
 	/** Email channel settings; SMTP transport itself comes from {@code spring.mail.*}. */
@@ -262,6 +269,59 @@ public class NotificationProperties {
 		 * slow caller.
 		 */
 		CALLER_RUNS
+
+	}
+
+	/**
+	 * Reminders re-notify every channel for an entity that stays in a configured status
+	 * (e.g. an app stuck {@code DOWN}) until it resolves. Off by default; when enabled,
+	 * {@link #statuses} must list the statuses that arm a reminder.
+	 */
+	public static class Reminders {
+
+		/** Enable periodic re-notification for stuck entities. */
+		private boolean enabled;
+
+		/** Statuses that arm a reminder (e.g. {@code FAILED}, {@code DOWN}). */
+		private List<String> statuses = new ArrayList<>();
+
+		/** How long an entity must stay in a reminder status before it is re-notified. */
+		private Duration period = Duration.ofHours(1);
+
+		/** How often the scheduler checks for due reminders. */
+		private Duration checkInterval = Duration.ofMinutes(1);
+
+		public boolean isEnabled() {
+			return enabled;
+		}
+
+		public void setEnabled(boolean enabled) {
+			this.enabled = enabled;
+		}
+
+		public List<String> getStatuses() {
+			return statuses;
+		}
+
+		public void setStatuses(List<String> statuses) {
+			this.statuses = statuses;
+		}
+
+		public Duration getPeriod() {
+			return period;
+		}
+
+		public void setPeriod(Duration period) {
+			this.period = period;
+		}
+
+		public Duration getCheckInterval() {
+			return checkInterval;
+		}
+
+		public void setCheckInterval(Duration checkInterval) {
+			this.checkInterval = checkInterval;
+		}
 
 	}
 
