@@ -33,12 +33,39 @@ import org.slf4j.LoggerFactory;
  *   pushover://&lt;app-token&gt;/&lt;user-key&gt;
  *   twilio://&lt;account-sid&gt;:&lt;auth-token&gt;@&lt;from&gt;/&lt;to&gt;
  *   signal://&lt;bridge-host&gt;/&lt;from&gt;/&lt;to&gt;
- *   whatsapp://&lt;token&gt;@&lt;phone-number-id&gt;/&lt;to&gt;
+ *   whatsapp://&lt;token&gt;@&lt;phone-number-id&gt;/&lt;to&gt;?version=v22.0
  *   zulip://&lt;bot-email&gt;:&lt;api-key&gt;@&lt;host&gt;/&lt;stream&gt;/&lt;topic&gt;
  *   pushbullet://&lt;access-token&gt;
  *   pagerduty://&lt;routing-key&gt;?tags=failed
  *   opsgenie://&lt;api-key&gt;?tags=failed
  * </pre>
+ *
+ * <h2>Grammar (stable since 1.0.0)</h2>
+ *
+ * The URL grammar is part of the public API and is frozen; these rules will not change in
+ * a backward-incompatible way within 1.x:
+ *
+ * <ul>
+ * <li><b>Scheme</b> (before {@code ://}) selects the channel and payload shape; it is
+ * lower-cased.</li>
+ * <li><b>Transport suffix</b>: an optional {@code +http}/{@code +https} on the scheme
+ * selects the wire protocol (default {@code https}). {@code +http} is intended for tests
+ * and self-hosted endpoints; using it for a credential-bearing scheme logs a
+ * warning.</li>
+ * <li><b>{@code ?tags=a,b}</b> sets routing tags (comma-separated) and is removed from
+ * the URL before the endpoint is built; other query parameters are preserved.</li>
+ * <li><b>Credential-only schemes</b> ({@code pagerduty}, {@code opsgenie},
+ * {@code pushbullet}, {@code pushover}) put the secret in the authority and fall back to
+ * a fixed default host ({@code events.pagerduty.com}, {@code api.opsgenie.com},
+ * {@code api.pushbullet.com}, {@code api.pushover.net}); an explicit {@code user@host}
+ * form overrides the host (mainly for tests).</li>
+ * <li><b>{@code zulip}</b> is parsed with the <em>last</em> {@code @} (the bot email
+ * itself contains an {@code @}) and the <em>last</em> {@code :} before it.</li>
+ * <li><b>{@code twilio}</b>/{@code whatsapp} use the <em>first</em> {@code @}; phone
+ * numbers keep a leading {@code +}.</li>
+ * <li><b>{@code whatsapp}</b> accepts an optional {@code ?version=} to override the Graph
+ * API version (default {@link WhatsAppNotifier#API_VERSION}).</li>
+ * </ul>
  *
  * Spring-free: the {@code spring-boot-starter} only supplies the URL list and the
  * adapter.
@@ -205,6 +232,25 @@ public class NotifierUrlParser<E> {
 	}
 
 	/**
+	 * Read a single query-parameter value from {@code rest}, or {@code null} if absent.
+	 * Used by hand-parsed schemes to pick up options (e.g. {@code version}) before
+	 * {@link #stripQuery} drops the query.
+	 */
+	private static String queryParam(String rest, String key) {
+		int q = rest.indexOf('?');
+		if (q < 0) {
+			return null;
+		}
+		for (String pair : rest.substring(q + 1).split("&")) {
+			int eq = pair.indexOf('=');
+			if (eq > 0 && key.equals(pair.substring(0, eq))) {
+				return pair.substring(eq + 1);
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Drop any trailing query so it can't land inside a credential/target segment of the
 	 * hand-parsed schemes (the URI-based ones ignore the query already).
 	 */
@@ -308,7 +354,8 @@ public class NotifierUrlParser<E> {
 	}
 
 	private Notifier<E> whatsapp(String transport, String rest, String url) {
-		// whatsapp://<token>@<phone-number-id>/<to>
+		// whatsapp://<token>@<phone-number-id>/<to>[?version=v22.0]
+		String version = queryParam(rest, "version");
 		rest = stripQuery(rest);
 		int at = rest.indexOf('@');
 		if (at < 0) {
@@ -320,8 +367,9 @@ public class NotifierUrlParser<E> {
 			throw new IllegalArgumentException("whatsapp url needs <token>@<phone-id>/<to>: " + safe(url));
 		}
 		String baseUrl = transport + "://graph.facebook.com";
-		return new WhatsAppNotifier<>(baseUrl, token, idTo[0], idTo[1], httpConfig, idFn, statusFn, messageFn,
-				ignoreChanges);
+		String apiVersion = (version != null && !version.isBlank()) ? version : WhatsAppNotifier.API_VERSION;
+		return new WhatsAppNotifier<>(baseUrl, token, idTo[0], idTo[1], apiVersion, httpConfig, idFn, statusFn,
+				messageFn, ignoreChanges);
 	}
 
 	private Notifier<E> zulip(String transport, String rest, String url) {

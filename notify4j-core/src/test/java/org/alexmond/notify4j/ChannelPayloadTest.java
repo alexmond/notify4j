@@ -158,6 +158,14 @@ class ChannelPayloadTest {
 	}
 
 	@Test
+	void whatsAppHonoursExplicitApiVersion() {
+		new WhatsAppNotifier<Evt>(base(), "tok", "PHID", "+15551111", "v22.0", HttpClientConfig.defaults(), Evt::id,
+				Evt::status, Evt::message, List.of())
+			.notify(evt());
+		assertThat(path.get()).isEqualTo("/v22.0/PHID/messages");
+	}
+
+	@Test
 	void zulipPostsFormEncodedStreamMessageWithBasicAuth() {
 		new ZulipNotifier<Evt>(base(), "bot@x.com", "key", "general", "deploys", HttpClientConfig.defaults(), Evt::id,
 				Evt::status, Evt::message, List.of())

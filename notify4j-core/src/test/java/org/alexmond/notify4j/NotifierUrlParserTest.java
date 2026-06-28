@@ -169,6 +169,25 @@ class NotifierUrlParserTest {
 		}
 	}
 
+	@Test
+	void frozenGrammarEdgeCasesParse() {
+		// zulip: bot email contains '@', so the host is taken from the LAST '@' and the
+		// key
+		// from the last ':' before it.
+		assertThat(notifier("zulip://bot@x.com:apikey@zulip.example.com/general/deploys"))
+			.isInstanceOf(ZulipNotifier.class);
+		// twilio/whatsapp: first '@', and '+' in phone numbers survives.
+		assertThat(notifier("twilio://AC1:tok@+15550000/+15551111")).isInstanceOf(TwilioNotifier.class);
+		assertThat(notifier("whatsapp://tok@PHID/+15551111")).isInstanceOf(WhatsAppNotifier.class);
+		// credential-only schemes fall back to their default host.
+		assertThat(notifier("pagerduty://routing-key")).isInstanceOf(PagerDutyNotifier.class);
+		assertThat(notifier("opsgenie://api-key")).isInstanceOf(OpsGenieNotifier.class);
+		// transport default is https; +http is accepted.
+		assertThat(notifier("webhook+http://localhost:8080/hook")).isInstanceOf(WebhookNotifier.class);
+		// whatsapp version override parses (and is not treated as a routing tag).
+		assertThat(parser.parse("whatsapp://tok@PHID/+15551111?version=v22.0").tags()).isEmpty();
+	}
+
 	private Notifier<Event> notifier(String url) {
 		return parser.parse(url).notifier();
 	}
