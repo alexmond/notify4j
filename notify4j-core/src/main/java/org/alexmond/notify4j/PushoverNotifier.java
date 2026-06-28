@@ -22,8 +22,8 @@ public class PushoverNotifier<E> extends AbstractHttpNotifier<E> {
 
 	public PushoverNotifier(String baseUrl, String token, String user, HttpClientConfig httpConfig,
 			Function<E, Object> idFn, Function<E, String> statusFn, Function<E, String> messageFn,
-			List<String> ignoreChanges) {
-		super(baseUrl + "/1/messages.json", httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+			Function<E, String> titleFn, Function<E, Severity> severityFn, List<String> ignoreChanges) {
+		super(baseUrl + "/1/messages.json", httpConfig, idFn, statusFn, messageFn, titleFn, severityFn, ignoreChanges);
 		this.token = token;
 		this.user = user;
 	}
@@ -38,9 +38,24 @@ public class PushoverNotifier<E> extends AbstractHttpNotifier<E> {
 		Map<String, String> fields = new LinkedHashMap<>();
 		fields.put("token", this.token);
 		fields.put("user", this.user);
-		fields.put("title", statusFn.apply(event));
+		fields.put("title", resolvedTitle(event, statusFn.apply(event)));
 		fields.put("message", messageFn.apply(event));
+		// null priority is skipped by formEncode (DEFAULT → Pushover's own default of 0).
+		fields.put("priority", pushoverPriority(severityFn.apply(event)));
 		return formEncode(fields);
+	}
+
+	/**
+	 * Map onto Pushover's -2..2 priority; {@code DEFAULT} omits it (Pushover default 0).
+	 */
+	private static String pushoverPriority(Severity severity) {
+		return switch (severity) {
+			case INFO -> "-1";
+			case WARNING -> "0";
+			case ERROR -> "1";
+			case CRITICAL -> "2";
+			case DEFAULT -> null;
+		};
 	}
 
 }

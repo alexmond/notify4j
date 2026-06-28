@@ -110,7 +110,7 @@ class ChannelPayloadTest {
 	@Test
 	void gotifyPostsTitleAndMessageToMessageEndpoint() {
 		new GotifyNotifier<Evt>(base(), "apptok", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
-				List.of())
+				(e) -> null, (e) -> Severity.DEFAULT, List.of())
 			.notify(evt());
 		assertThat(path.get()).isEqualTo("/message");
 		assertThat(body.get()).isEqualTo("{\"title\":\"FAILED\",\"message\":\"build broke\"}");
@@ -119,7 +119,7 @@ class ChannelPayloadTest {
 	@Test
 	void pushoverPostsFormEncodedToMessagesEndpoint() {
 		new PushoverNotifier<Evt>(base(), "tok", "usr", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
-				List.of())
+				(e) -> null, (e) -> Severity.DEFAULT, List.of())
 			.notify(evt());
 		assertThat(path.get()).isEqualTo("/1/messages.json");
 		assertThat(body.get()).isEqualTo("token=tok&user=usr&title=FAILED&message=build+broke");
@@ -190,7 +190,7 @@ class ChannelPayloadTest {
 	@Test
 	void ntfyPostsTopicTitleAndMessageToRoot() {
 		new NtfyNotifier<Evt>(base(), "alerts", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
-				List.of())
+				(e) -> null, (e) -> Severity.DEFAULT, List.of())
 			.notify(evt());
 		assertThat(path.get()).isEqualTo("/");
 		assertThat(body.get()).isEqualTo("{\"topic\":\"alerts\",\"title\":\"FAILED\",\"message\":\"build broke\"}");
@@ -199,7 +199,7 @@ class ChannelPayloadTest {
 	@Test
 	void pagerDutyEnqueuesTriggerEnvelope() {
 		new PagerDutyNotifier<Evt>(base(), "rk-1", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
-				List.of())
+				(e) -> null, (e) -> Severity.DEFAULT, List.of())
 			.notify(evt());
 		assertThat(path.get()).isEqualTo("/v2/enqueue");
 		assertThat(body.get()).contains("\"routing_key\":\"rk-1\"")
@@ -214,13 +214,48 @@ class ChannelPayloadTest {
 	@Test
 	void opsGenieCreatesAlertWithGenieKeyHeader() {
 		new OpsGenieNotifier<Evt>(base(), "key-9", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
-				List.of())
+				(e) -> null, (e) -> Severity.DEFAULT, List.of())
 			.notify(evt());
 		assertThat(path.get()).isEqualTo("/v2/alerts");
 		assertThat(auth.get()).isEqualTo("GenieKey key-9");
 		assertThat(body.get()).contains("\"message\":\"build broke\"")
 			.contains("\"alias\":7")
-			.contains("\"status\":\"FAILED\"");
+			.contains("\"status\":\"FAILED\"")
+			.doesNotContain("\"priority\""); // DEFAULT severity omits priority
+	}
+
+	@Test
+	void severityAndTitleEnrichChannelsThatSupportThem() {
+		// PagerDuty maps severity onto its own scale (was hard-coded "error").
+		new PagerDutyNotifier<Evt>(base(), "rk", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				(e) -> "Build failed", (e) -> Severity.CRITICAL, List.of())
+			.notify(evt());
+		assertThat(body.get()).contains("\"severity\":\"critical\"");
+
+		// OpsGenie adds a P-priority only when severity is set.
+		new OpsGenieNotifier<Evt>(base(), "k", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				(e) -> null, (e) -> Severity.WARNING, List.of())
+			.notify(evt());
+		assertThat(body.get()).contains("\"priority\":\"P3\"");
+
+		// ntfy: title overrides the status, severity becomes a numeric priority.
+		new NtfyNotifier<Evt>(base(), "alerts", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				(e) -> "Deploy", (e) -> Severity.ERROR, List.of())
+			.notify(evt());
+		assertThat(body.get())
+			.isEqualTo("{\"topic\":\"alerts\",\"title\":\"Deploy\",\"message\":\"build broke\",\"priority\":4}");
+
+		// Gotify: title + numeric priority.
+		new GotifyNotifier<Evt>(base(), "tok", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				(e) -> "Deploy", (e) -> Severity.INFO, List.of())
+			.notify(evt());
+		assertThat(body.get()).isEqualTo("{\"title\":\"Deploy\",\"message\":\"build broke\",\"priority\":1}");
+
+		// Pushover: title + form-encoded priority.
+		new PushoverNotifier<Evt>(base(), "tok", "usr", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				(e) -> "Deploy", (e) -> Severity.CRITICAL, List.of())
+			.notify(evt());
+		assertThat(body.get()).isEqualTo("token=tok&user=usr&title=Deploy&message=build+broke&priority=2");
 	}
 
 	record Evt(long id, String status, String message) {

@@ -131,7 +131,7 @@ public class NotificationsAutoConfiguration {
 		Notifier emailNotifier(NotificationProperties props, NotificationAdapter adapter, JavaMailSender mailSender) {
 			NotificationProperties.Email email = props.getEmail();
 			return new EmailNotifier<>(mailSender, email.getFrom(), email.getTo(), email.getSubjectPrefix(),
-					adapter::id, adapter::status, adapter::message, props.getIgnoreChanges());
+					adapter::id, adapter::status, adapter::message, adapter::title, props.getIgnoreChanges());
 		}
 
 	}

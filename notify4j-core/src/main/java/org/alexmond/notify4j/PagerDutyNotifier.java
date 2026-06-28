@@ -21,8 +21,9 @@ public class PagerDutyNotifier<E> extends AbstractHttpNotifier<E> {
 	 * {@code /v2/enqueue} is appended.
 	 */
 	public PagerDutyNotifier(String endpoint, String routingKey, HttpClientConfig httpConfig, Function<E, Object> idFn,
-			Function<E, String> statusFn, Function<E, String> messageFn, List<String> ignoreChanges) {
-		super(endpoint + "/v2/enqueue", httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+			Function<E, String> statusFn, Function<E, String> messageFn, Function<E, String> titleFn,
+			Function<E, Severity> severityFn, List<String> ignoreChanges) {
+		super(endpoint + "/v2/enqueue", httpConfig, idFn, statusFn, messageFn, titleFn, severityFn, ignoreChanges);
 		this.routingKey = routingKey;
 	}
 
@@ -30,8 +31,18 @@ public class PagerDutyNotifier<E> extends AbstractHttpNotifier<E> {
 	protected String payload(E event) {
 		return "{\"routing_key\":" + jsonString(routingKey) + ",\"event_action\":\"trigger\"" + ",\"dedup_key\":"
 				+ jsonValue(idFn.apply(event)) + ",\"payload\":{" + "\"summary\":" + jsonString(messageFn.apply(event))
-				+ ",\"source\":\"notify4j\"" + ",\"severity\":\"error\"" + ",\"custom_details\":{\"status\":"
-				+ jsonString(statusFn.apply(event)) + "}" + "}}";
+				+ ",\"source\":\"notify4j\"" + ",\"severity\":" + jsonString(pagerDutySeverity(severityFn.apply(event)))
+				+ ",\"custom_details\":{\"status\":" + jsonString(statusFn.apply(event)) + "}" + "}}";
+	}
+
+	/** Map onto PagerDuty's severities; {@code DEFAULT} stays {@code error} as before. */
+	private static String pagerDutySeverity(Severity severity) {
+		return switch (severity) {
+			case INFO -> "info";
+			case WARNING -> "warning";
+			case CRITICAL -> "critical";
+			case ERROR, DEFAULT -> "error";
+		};
 	}
 
 }

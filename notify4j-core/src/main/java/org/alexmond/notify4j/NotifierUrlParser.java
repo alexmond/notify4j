@@ -63,6 +63,10 @@ public class NotifierUrlParser<E> {
 
 	private final Function<E, String> messageFn;
 
+	private final Function<E, String> titleFn;
+
+	private final Function<E, Severity> severityFn;
+
 	private final List<String> ignoreChanges;
 
 	private final HttpClientConfig httpConfig;
@@ -80,6 +84,8 @@ public class NotifierUrlParser<E> {
 		this.idFn = adapter::id;
 		this.statusFn = adapter::status;
 		this.messageFn = adapter::message;
+		this.titleFn = adapter::title;
+		this.severityFn = adapter::severity;
 		this.ignoreChanges = ignoreChanges;
 		this.httpConfig = httpConfig;
 	}
@@ -139,11 +145,13 @@ public class NotifierUrlParser<E> {
 			}
 			case "pagerduty" -> {
 				String[] ch = credentialAndHost(transport, rest, url, "events.pagerduty.com");
-				yield new PagerDutyNotifier<>(ch[1], ch[0], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+				yield new PagerDutyNotifier<>(ch[1], ch[0], httpConfig, idFn, statusFn, messageFn, titleFn, severityFn,
+						ignoreChanges);
 			}
 			case "opsgenie" -> {
 				String[] ch = credentialAndHost(transport, rest, url, "api.opsgenie.com");
-				yield new OpsGenieNotifier<>(ch[1], ch[0], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+				yield new OpsGenieNotifier<>(ch[1], ch[0], httpConfig, idFn, statusFn, messageFn, titleFn, severityFn,
+						ignoreChanges);
 			}
 			default -> throw new IllegalArgumentException(
 					"unknown notification scheme '" + channel + "' in url: " + safe(url));
@@ -232,7 +240,8 @@ public class NotifierUrlParser<E> {
 			throw new IllegalArgumentException("ntfy url needs /<topic>: " + safe(url));
 		}
 		String baseUrl = transport + "://" + authority;
-		return new NtfyNotifier<>(baseUrl, topic, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+		return new NtfyNotifier<>(baseUrl, topic, httpConfig, idFn, statusFn, messageFn, titleFn, severityFn,
+				ignoreChanges);
 	}
 
 	private Notifier<E> gotify(String transport, String rest, String url) {
@@ -247,7 +256,8 @@ public class NotifierUrlParser<E> {
 			throw new IllegalArgumentException("gotify url needs /<app-token>: " + safe(url));
 		}
 		String baseUrl = transport + "://" + authority;
-		return new GotifyNotifier<>(baseUrl, token, httpConfig, idFn, statusFn, messageFn, ignoreChanges);
+		return new GotifyNotifier<>(baseUrl, token, httpConfig, idFn, statusFn, messageFn, titleFn, severityFn,
+				ignoreChanges);
 	}
 
 	private Notifier<E> pushover(String transport, String rest, String url) {
@@ -257,8 +267,8 @@ public class NotifierUrlParser<E> {
 			throw new IllegalArgumentException("pushover url needs <app-token>/<user-key>: " + safe(url));
 		}
 		String baseUrl = transport + "://api.pushover.net";
-		return new PushoverNotifier<>(baseUrl, parts[0], parts[1], httpConfig, idFn, statusFn, messageFn,
-				ignoreChanges);
+		return new PushoverNotifier<>(baseUrl, parts[0], parts[1], httpConfig, idFn, statusFn, messageFn, titleFn,
+				severityFn, ignoreChanges);
 	}
 
 	private Notifier<E> twilio(String transport, String rest, String url) {
