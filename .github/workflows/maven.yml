@@ -38,7 +38,7 @@ jobs:
       # CI stays green until the token lands. (Tokenless upload isn't allowed on this org.)
       - name: Add coverage to PR
         if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ env.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/*/target/site/jacoco/jacoco.xml
