@@ -2,6 +2,7 @@ package org.alexmond.notify4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.net.http.HttpClient;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +27,14 @@ class HttpClientConfigTest {
 	void maxAttemptsFloorsAtOne() {
 		assertThat(HttpClientConfig.of(Duration.ofSeconds(1), Duration.ofSeconds(1), 0, Duration.ofMillis(1))
 			.maxAttempts()).isEqualTo(1);
+	}
+
+	@Test
+	void redirectsArePinnedToNever() {
+		// A credentialed POST must never be bounced by a 3xx to an attacker-chosen host.
+		assertThat(HttpClientConfig.of(Duration.ofSeconds(1), Duration.ofSeconds(1)).client().followRedirects())
+			.isEqualTo(HttpClient.Redirect.NEVER);
+		assertThat(HttpClientConfig.defaults().client().followRedirects()).isEqualTo(HttpClient.Redirect.NEVER);
 	}
 
 	@Test

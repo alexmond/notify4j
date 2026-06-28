@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Turns an Apprise/shoutrrr-style channel URL into a {@link Channel} (a {@link Notifier}
@@ -44,6 +46,16 @@ import java.util.function.Function;
  * @param <E> the application's event type
  */
 public class NotifierUrlParser<E> {
+
+	private static final Logger log = LoggerFactory.getLogger(NotifierUrlParser.class);
+
+	/**
+	 * Schemes whose URL embeds a secret (token / key / SID); used to warn when they are
+	 * configured over cleartext {@code +http}, which would put that secret on the wire
+	 * unencrypted.
+	 */
+	private static final Set<String> CREDENTIAL_SCHEMES = Set.of("telegram", "gotify", "pushover", "twilio", "whatsapp",
+			"zulip", "pagerduty", "opsgenie", "pushbullet");
 
 	private final Function<E, Object> idFn;
 
@@ -92,6 +104,10 @@ public class NotifierUrlParser<E> {
 		}
 		if (!"http".equals(transport) && !"https".equals(transport)) {
 			throw new IllegalArgumentException("unsupported transport '" + transport + "' in url: " + safe(url));
+		}
+		if ("http".equals(transport) && CREDENTIAL_SCHEMES.contains(channel)) {
+			log.warn("channel '{}' uses cleartext +http: its embedded credentials will be sent unencrypted — "
+					+ "use https in production", channel);
 		}
 
 		Set<String> tags = new LinkedHashSet<>();
