@@ -118,6 +118,25 @@ class HttpRetryTest {
 		assertThat(requests.get()).isEqualTo(3);
 	}
 
+	@Test
+	void nonBlockingRetryRecordsFailureOnConnectionError() throws Exception {
+		int deadPort;
+		try (java.net.ServerSocket s = new java.net.ServerSocket(0)) {
+			deadPort = s.getLocalPort(); // free it immediately → connection refused
+		}
+		// retries an IOException (connection refused) then records the terminal failure
+		HttpClientConfig cfg = HttpClientConfig.of(Duration.ofSeconds(2), Duration.ofSeconds(2), 2,
+				Duration.ofMillis(1), true);
+		Outcomes outcomes = new Outcomes();
+		WebhookNotifier<Evt> n = new WebhookNotifier<>("http://127.0.0.1:" + deadPort + "/hook", cfg, Evt::id,
+				Evt::status, Evt::message, List.of());
+		n.setMetrics(outcomes);
+
+		n.notify(new Evt(9, "FAILED", "m"));
+
+		assertThat(outcomes.failed.await(5, TimeUnit.SECONDS)).isTrue();
+	}
+
 	/** Latches that fire when the async delivery records its terminal outcome. */
 	static final class Outcomes implements NotificationMetrics {
 
