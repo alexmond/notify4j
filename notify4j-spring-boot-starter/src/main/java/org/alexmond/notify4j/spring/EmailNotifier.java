@@ -16,6 +16,7 @@ import org.springframework.mail.javamail.JavaMailSender;
  * is the message.
  *
  * @param <E> the application's event type
+ * @since 1.0.0
  */
 public class EmailNotifier<E> extends AbstractEventNotifier<E> {
 

@@ -22,6 +22,8 @@ import java.util.concurrent.Executor;
  *         .executor(myPool)
  *         .build();
  * </pre>
+ *
+ * @since 1.0.0
  */
 public final class NotificationsConfig {
 

@@ -1,5 +1,24 @@
 package org.alexmond.notify4j;
 
+import org.alexmond.notify4j.internal.DiscordNotifier;
+import org.alexmond.notify4j.internal.GoogleChatNotifier;
+import org.alexmond.notify4j.internal.GotifyNotifier;
+import org.alexmond.notify4j.internal.MattermostNotifier;
+import org.alexmond.notify4j.internal.NtfyNotifier;
+import org.alexmond.notify4j.internal.OpsGenieNotifier;
+import org.alexmond.notify4j.internal.PagerDutyNotifier;
+import org.alexmond.notify4j.internal.PushbulletNotifier;
+import org.alexmond.notify4j.internal.PushoverNotifier;
+import org.alexmond.notify4j.internal.RocketChatNotifier;
+import org.alexmond.notify4j.internal.SignalNotifier;
+import org.alexmond.notify4j.internal.SlackNotifier;
+import org.alexmond.notify4j.internal.TeamsNotifier;
+import org.alexmond.notify4j.internal.TelegramNotifier;
+import org.alexmond.notify4j.internal.TwilioNotifier;
+import org.alexmond.notify4j.internal.WebhookNotifier;
+import org.alexmond.notify4j.internal.WhatsAppNotifier;
+import org.alexmond.notify4j.internal.ZulipNotifier;
+
 import java.net.URI;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -71,6 +90,7 @@ import org.slf4j.LoggerFactory;
  * adapter.
  *
  * @param <E> the application's event type
+ * @since 1.0.0
  */
 public class NotifierUrlParser<E> {
 

@@ -7,6 +7,7 @@ package org.alexmond.notify4j;
  * {@link AbstractEventNotifier}.
  *
  * @param <E> the application's event type (e.g. a pipeline-run event)
+ * @since 1.0.0
  */
 @FunctionalInterface
 public interface Notifier<E> {

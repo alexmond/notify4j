@@ -1,5 +1,7 @@
 package org.alexmond.notify4j;
 
+import org.alexmond.notify4j.internal.WebhookNotifier;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 

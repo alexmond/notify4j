@@ -19,6 +19,7 @@ import java.util.function.Function;
  * come from a shared {@link HttpClientConfig}.
  *
  * @param <E> the application's event type
+ * @since 1.0.0
  */
 public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 

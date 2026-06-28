@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
  * when an executor is configured.
  *
  * @param <E> the application's event type
+ * @since 1.0.0
  */
 public class AsyncNotifier<E> implements Notifier<E> {
 

@@ -26,6 +26,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * ({@code PENDING}/{@code RUNNING}/{@code ASSIGNED}), so channels fire on terminal
  * SUCCESS/FAILED rather than intermediate states. See also {@link Http} (timeouts +
  * retry) and {@link Async} (non-blocking delivery).
+ *
+ * @since 1.0.0
  */
 @ConfigurationProperties("notify4j")
 public class NotificationProperties {

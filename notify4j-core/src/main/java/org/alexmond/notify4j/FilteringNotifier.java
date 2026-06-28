@@ -9,6 +9,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * pruned lazily.
  *
  * @param <E> the application's event type
+ * @since 1.0.0
  */
 public class FilteringNotifier<E> implements Notifier<E> {
 

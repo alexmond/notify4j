@@ -18,6 +18,7 @@ import java.time.Duration;
  * @param requestTimeout per-request read timeout
  * @param maxAttempts total delivery attempts per send; {@code 1} disables retry
  * @param retryBackoff base backoff between retries (doubled each attempt, capped)
+ * @since 1.0.0
  */
 public record HttpClientConfig(HttpClient client, Duration requestTimeout, int maxAttempts, Duration retryBackoff) {
 

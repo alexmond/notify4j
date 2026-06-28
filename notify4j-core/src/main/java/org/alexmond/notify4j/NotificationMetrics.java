@@ -7,6 +7,8 @@ package org.alexmond.notify4j;
  * {@code MeterRegistry} is present. Recorded inside {@link AbstractEventNotifier} (where
  * success/failure is known, since a failing channel is swallowed and never rethrown). The
  * default {@link #NOOP} records nothing.
+ *
+ * @since 1.0.0
  */
 public interface NotificationMetrics {
 

@@ -1,4 +1,7 @@
-package org.alexmond.notify4j;
+package org.alexmond.notify4j.internal;
+
+import org.alexmond.notify4j.AbstractHttpNotifier;
+import org.alexmond.notify4j.HttpClientConfig;
 
 import java.util.List;
 import java.util.Map;

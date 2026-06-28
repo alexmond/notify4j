@@ -35,6 +35,8 @@ import org.springframework.mail.javamail.JavaMailSender;
  * app's event type, which is only known to the {@link NotificationAdapter} bean. Spring
  * injects that single adapter and all {@link Notifier} beans by raw type, and the facade
  * fans out to them uniformly.
+ *
+ * @since 1.0.0
  */
 @AutoConfiguration
 @EnableConfigurationProperties(NotificationProperties.class)

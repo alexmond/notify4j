@@ -9,6 +9,7 @@ import java.util.List;
  * {@link TransitionFilter} directly — see {@link AbstractHttpNotifier}.)
  *
  * @param <E> the application's event type
+ * @since 1.0.0
  */
 public abstract class AbstractTransitionNotifier<E> extends AbstractEventNotifier<E> {
 

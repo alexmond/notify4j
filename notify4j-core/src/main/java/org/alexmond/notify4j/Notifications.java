@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
  * </p>
  *
  * @param <E> the application's event type
+ * @since 1.0.0
  */
 public class Notifications<E> implements AutoCloseable {
 

@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * Tracks the last status per entity id and suppresses non-transitions and changes
  * matching {@code ignoreChanges} (patterns {@code OLD:NEW} with {@code *} wildcards).
  * Reusable by any notifier.
+ *
+ * @since 1.0.0
  */
 public class TransitionFilter {
 

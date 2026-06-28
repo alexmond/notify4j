@@ -24,5 +24,22 @@
  * failures ({@link org.alexmond.notify4j.HttpClientConfig}), and record per-channel
  * delivery outcomes against the dependency-free
  * {@link org.alexmond.notify4j.NotificationMetrics} SPI.
+ *
+ * <h2>Public API &amp; stability (since 1.0.0)</h2> This package is the stable public
+ * API: the SPIs ({@code Notifier}, {@code NotificationAdapter},
+ * {@code NotificationFilter}, {@code NotificationMetrics}), the facade
+ * ({@code Notifications}, {@code NotificationsFactory}, {@code NotificationsConfig}), the
+ * value types ({@code Severity}, {@code HttpClientConfig}), the decorators
+ * ({@code AsyncNotifier}, {@code CompositeNotifier}, {@code FilteringNotifier},
+ * {@code RemindingNotifier}, {@code LoggingNotifier}), the {@code Abstract*} extension
+ * points, and the URL grammar of {@code NotifierUrlParser}. These follow semantic
+ * versioning within 1.x.
+ *
+ * <p>
+ * The {@link org.alexmond.notify4j.internal} package is <strong>not</strong> public API:
+ * the concrete per-channel notifier classes live there and are constructed only via
+ * channel URLs (see {@code NotifierUrlParser}); their classes and constructors may change
+ * in any release. Configure channels through URLs and the facade, not by instantiating
+ * them.
  */
 package org.alexmond.notify4j;
