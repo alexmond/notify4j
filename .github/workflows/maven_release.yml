@@ -41,9 +41,9 @@ jobs:
       - name: Set Release Version
         run: |
           ./mvnw versions:set -DnewVersion=${{ github.event.inputs.releaseVersion }} -Pdefault --no-transfer-progress
-          # Keep the doc install-version markers in sync with the release. The docs hub pins this
-          # tag, so these must match the released version (versions:set only touches the POMs).
-          sed -i -E "s/notify4j-version: .*/notify4j-version: ${{ github.event.inputs.releaseVersion }}/" docs/antora.yml
+          # Keep the README install snippet in sync with the release (versions:set only touches
+          # the POMs). The Antora docs use {page-component-version}, which resolves to the pinned
+          # tag automatically, so no docs/antora.yml edit is needed.
           sed -i -E "s#<version>[0-9][0-9.]*(-SNAPSHOT)?</version>#<version>${{ github.event.inputs.releaseVersion }}</version>#" README.adoc
 
       - name: Verify Build

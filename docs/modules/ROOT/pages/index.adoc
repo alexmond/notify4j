@@ -19,3 +19,4 @@ to run.
 * xref:getting-started.adoc[Getting started] — add the starter and send your first notification.
 * xref:configuration.adoc[Configuration] — every property and the full channel-URL reference.
 * xref:architecture.adoc[Architecture] — the core concepts (adapter, transitions, filters, reminders).
+* API reference: {api-core}/index.html[notify4j-core] · {api-starter}/index.html[notify4j-spring-boot-starter].

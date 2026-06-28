@@ -17,7 +17,7 @@ The starter transitively pulls in `notify4j-core`:
 <dependency>
     <groupId>org.alexmond</groupId>
     <artifactId>notify4j-spring-boot-starter</artifactId>
-    <version>{notify4j-version}</version>
+    <version>{page-component-version}</version>
 </dependency>
 ----
 
@@ -28,7 +28,7 @@ To align versions across modules, import the BOM in `<dependencyManagement>`:
 <dependency>
     <groupId>org.alexmond</groupId>
     <artifactId>notify4j-bom</artifactId>
-    <version>{notify4j-version}</version>
+    <version>{page-component-version}</version>
     <type>pom</type>
     <scope>import</scope>
 </dependency>
