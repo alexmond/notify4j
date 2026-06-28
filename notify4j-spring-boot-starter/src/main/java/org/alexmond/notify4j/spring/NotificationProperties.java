@@ -197,6 +197,16 @@ public class NotificationProperties {
 		/** Size of the shared delivery thread pool. */
 		private int poolSize = 4;
 
+		/**
+		 * Bound on the delivery queue, so a burst or a persistently-slow channel can't
+		 * grow it without limit and OOM the host. When the pool and queue are both full,
+		 * new deliveries are handled by {@link #rejectionPolicy}.
+		 */
+		private int queueCapacity = 1000;
+
+		/** What to do when the pool and queue are both full. */
+		private RejectionPolicy rejectionPolicy = RejectionPolicy.DROP;
+
 		public boolean isEnabled() {
 			return enabled;
 		}
@@ -212,6 +222,44 @@ public class NotificationProperties {
 		public void setPoolSize(int poolSize) {
 			this.poolSize = poolSize;
 		}
+
+		public int getQueueCapacity() {
+			return queueCapacity;
+		}
+
+		public void setQueueCapacity(int queueCapacity) {
+			this.queueCapacity = queueCapacity;
+		}
+
+		public RejectionPolicy getRejectionPolicy() {
+			return rejectionPolicy;
+		}
+
+		public void setRejectionPolicy(RejectionPolicy rejectionPolicy) {
+			this.rejectionPolicy = rejectionPolicy;
+		}
+
+	}
+
+	/**
+	 * How to handle a delivery when the async pool and its queue are both full.
+	 */
+	public enum RejectionPolicy {
+
+		/**
+		 * Drop the delivery (default). Never blocks the caller and never grows memory;
+		 * the drop is logged and recorded via {@code NotificationMetrics.recordDropped}.
+		 * Best for an alerting library that must not harm its host under back-pressure.
+		 */
+		DROP,
+
+		/**
+		 * Run the delivery on the caller's thread. Applies back-pressure (the caller
+		 * slows down) instead of dropping, at the cost of momentarily reintroducing
+		 * caller-thread blocking — choose this when losing a notification is worse than a
+		 * slow caller.
+		 */
+		CALLER_RUNS
 
 	}
 

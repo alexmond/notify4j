@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,40 @@ class AsyncNotifierTest {
 
 		// AsyncNotifier must never propagate a delegate failure to the caller.
 		assertThatCode(() -> async.notify("x")).doesNotThrowAnyException();
+	}
+
+	@Test
+	void recordsDropAndSwallowsWhenPoolRejects() {
+		var dropped = new AtomicReference<String>();
+		NotificationMetrics metrics = new NotificationMetrics() {
+			@Override
+			public void recordSent(String channel) {
+			}
+
+			@Override
+			public void recordFailed(String channel) {
+			}
+
+			@Override
+			public void recordSuppressed(String channel) {
+			}
+
+			@Override
+			public void recordDropped(String channel) {
+				dropped.set(channel);
+			}
+		};
+		// an executor that always rejects, standing in for a full bounded queue
+		Executor rejecting = (r) -> {
+			throw new RejectedExecutionException("queue full");
+		};
+		var delivered = new AtomicReference<String>();
+		var async = new AsyncNotifier<String>(delivered::set, rejecting, metrics, "slack");
+
+		// the drop must be swallowed (never breaks the caller) and recorded
+		assertThatCode(() -> async.notify("x")).doesNotThrowAnyException();
+		assertThat(delivered.get()).isNull();
+		assertThat(dropped.get()).isEqualTo("slack");
 	}
 
 	@Test

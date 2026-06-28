@@ -22,9 +22,26 @@ public class AsyncNotifier<E> implements Notifier<E> {
 
 	private final Executor executor;
 
+	private final NotificationMetrics metrics;
+
+	private final String channelName;
+
 	public AsyncNotifier(Notifier<E> delegate, Executor executor) {
+		this(delegate, executor, NotificationMetrics.NOOP, delegate.getClass().getSimpleName());
+	}
+
+	/**
+	 * @param delegate the channel to deliver to off-thread
+	 * @param executor the pool to deliver on
+	 * @param metrics sink that records a {@link NotificationMetrics#recordDropped drop}
+	 * when the pool rejects delivery (queue full); may be {@code null} for no-op
+	 * @param channelName name used to tag the drop metric
+	 */
+	public AsyncNotifier(Notifier<E> delegate, Executor executor, NotificationMetrics metrics, String channelName) {
 		this.delegate = delegate;
 		this.executor = executor;
+		this.metrics = (metrics != null) ? metrics : NotificationMetrics.NOOP;
+		this.channelName = channelName;
 	}
 
 	@Override
@@ -35,12 +52,15 @@ public class AsyncNotifier<E> implements Notifier<E> {
 					delegate.notify(event);
 				}
 				catch (RuntimeException ex) {
-					log.warn("async notifier {} failed: {}", delegate.getClass().getSimpleName(), ex.getMessage());
+					log.warn("async notifier {} failed: {}", this.channelName, ex.getMessage());
 				}
 			});
 		}
 		catch (RejectedExecutionException ex) {
-			log.warn("async delivery rejected for {}: {}", delegate.getClass().getSimpleName(), ex.getMessage());
+			// Pool saturated: drop rather than block the caller or grow the queue
+			// unbounded. Recorded so back-pressure is observable, not silent.
+			this.metrics.recordDropped(this.channelName);
+			log.warn("async delivery dropped for {} (delivery queue full): {}", this.channelName, ex.getMessage());
 		}
 	}
 

@@ -2,6 +2,7 @@ package org.alexmond.notify4j.spring;
 
 import java.util.List;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.alexmond.notify4j.HttpClientConfig;
 import org.alexmond.notify4j.NotificationAdapter;
@@ -75,10 +76,20 @@ public class NotificationsAutoConfiguration {
 	@ConditionalOnBean(NotificationAdapter.class)
 	@ConditionalOnProperty(name = "notify4j.async.enabled", matchIfMissing = true)
 	public Executor notify4jAsyncExecutor(NotificationProperties props) {
-		int poolSize = Math.max(1, props.getAsync().getPoolSize());
+		NotificationProperties.Async async = props.getAsync();
+		int poolSize = Math.max(1, async.getPoolSize());
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 		executor.setCorePoolSize(poolSize);
 		executor.setMaxPoolSize(poolSize);
+		// Bound the queue so a burst or a stuck channel can't grow it unbounded and OOM
+		// the
+		// host. With pool and queue both full, the rejection policy decides: DROP (abort
+		// →
+		// AsyncNotifier records the drop and logs) or CALLER_RUNS (back-pressure).
+		executor.setQueueCapacity(Math.max(0, async.getQueueCapacity()));
+		executor.setRejectedExecutionHandler(
+				(async.getRejectionPolicy() == NotificationProperties.RejectionPolicy.CALLER_RUNS)
+						? new ThreadPoolExecutor.CallerRunsPolicy() : new ThreadPoolExecutor.AbortPolicy());
 		executor.setThreadNamePrefix("notify4j-async-");
 		executor.setDaemon(true);
 		executor.setWaitForTasksToCompleteOnShutdown(true);
