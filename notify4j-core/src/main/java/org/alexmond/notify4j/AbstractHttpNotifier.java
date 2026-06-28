@@ -8,6 +8,9 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
@@ -98,12 +101,40 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 
 	@Override
 	protected void doNotify(E event) {
+		HttpRequest request = buildRequest(event);
+		if (httpConfig.nonBlockingRetry()) {
+			// Async: launch and return immediately. Retries are scheduled off-thread, so
+			// backoff never holds the (shared) delivery pool thread.
+			sendAsyncWithRetry(request, 1);
+		}
+		else {
+			// Synchronous: block the caller and sleep between retries.
+			sendWithRetry(request);
+		}
+	}
+
+	/**
+	 * Async notifiers complete after {@link #doNotify} returns, so they record their own
+	 * outcome (see {@link #onAsyncComplete}).
+	 */
+	@Override
+	protected boolean deliversAsync() {
+		return httpConfig.nonBlockingRetry();
+	}
+
+	private HttpRequest buildRequest(E event) {
 		HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(url))
 			.header("Content-Type", contentType())
 			.timeout(httpConfig.requestTimeout())
 			.POST(HttpRequest.BodyPublishers.ofString(payload(event), StandardCharsets.UTF_8));
 		headers().forEach(builder::header);
-		HttpRequest request = builder.build();
+		return builder.build();
+	}
+
+	/**
+	 * Blocking send with retry: throws on terminal failure (the caller swallows + logs).
+	 */
+	private void sendWithRetry(HttpRequest request) {
 		int maxAttempts = httpConfig.maxAttempts();
 		for (int attempt = 1;; attempt++) {
 			try {
@@ -115,14 +146,14 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 				// retry transient server errors / rate limits; 4xx (except 429) won't
 				// succeed on retry, so fail fast.
 				if ((code == 429 || code >= 500) && attempt < maxAttempts) {
-					backoff(attempt);
+					sleepBackoff(attempt);
 					continue;
 				}
 				throw new IllegalStateException("HTTP " + code + " from " + safeUrl + ": " + resp.body());
 			}
 			catch (IOException ex) {
 				if (attempt < maxAttempts) {
-					backoff(attempt);
+					sleepBackoff(attempt);
 					continue;
 				}
 				throw new IllegalStateException(
@@ -135,12 +166,62 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 		}
 	}
 
-	/** Sleep for an exponentially increasing, capped delay before the next retry. */
-	private void backoff(int attempt) {
+	/**
+	 * Non-blocking send with retry: delivers via the async client and re-schedules
+	 * transient failures after a delay without parking a thread. Records the outcome on
+	 * completion.
+	 */
+	private void sendAsyncWithRetry(HttpRequest request, int attempt) {
+		httpConfig.client()
+			.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+			.whenComplete((resp, ex) -> onAsyncComplete(request, attempt, resp, ex));
+	}
+
+	private void onAsyncComplete(HttpRequest request, int attempt, HttpResponse<String> resp, Throwable ex) {
+		int maxAttempts = httpConfig.maxAttempts();
+		if (ex != null) {
+			Throwable cause = (ex instanceof CompletionException && ex.getCause() != null) ? ex.getCause() : ex;
+			if (cause instanceof IOException && attempt < maxAttempts) {
+				scheduleAsyncRetry(request, attempt);
+			}
+			else {
+				recordDeliveryFailed();
+				log.warn("notifier {} failed: POST to {} failed after {} attempt(s): {}", channelName(), safeUrl,
+						attempt, cause.getMessage());
+			}
+			return;
+		}
+		int code = resp.statusCode();
+		if (code < 300) {
+			recordDelivered();
+			return;
+		}
+		if ((code == 429 || code >= 500) && attempt < maxAttempts) {
+			scheduleAsyncRetry(request, attempt);
+		}
+		else {
+			recordDeliveryFailed();
+			log.warn("notifier {} failed: HTTP {} from {}", channelName(), code, safeUrl);
+		}
+	}
+
+	private void scheduleAsyncRetry(HttpRequest request, int attempt) {
+		// Delay via the JDK's shared delayer (no dedicated thread parked), then
+		// re-attempt.
+		CompletableFuture.runAsync(() -> sendAsyncWithRetry(request, attempt + 1),
+				CompletableFuture.delayedExecutor(backoffMillis(attempt), TimeUnit.MILLISECONDS));
+	}
+
+	/** Exponentially increasing, capped backoff (ms) before the next retry. */
+	private long backoffMillis(int attempt) {
 		long base = httpConfig.retryBackoff().toMillis();
-		long delay = Math.max(0L, Math.min(base << Math.min(attempt - 1, MAX_BACKOFF_SHIFT), MAX_BACKOFF_MS));
+		return Math.max(0L, Math.min(base << Math.min(attempt - 1, MAX_BACKOFF_SHIFT), MAX_BACKOFF_MS));
+	}
+
+	/** Sleep for the capped backoff before the next (blocking) retry. */
+	private void sleepBackoff(int attempt) {
 		try {
-			Thread.sleep(delay);
+			Thread.sleep(backoffMillis(attempt));
 		}
 		catch (InterruptedException ex) {
 			Thread.currentThread().interrupt();

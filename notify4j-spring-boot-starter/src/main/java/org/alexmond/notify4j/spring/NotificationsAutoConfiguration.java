@@ -56,13 +56,16 @@ public class NotificationsAutoConfiguration {
 			@Qualifier("notify4jAsyncExecutor") ObjectProvider<Executor> asyncExecutor,
 			ObjectProvider<NotificationMetrics> metrics) {
 		NotificationProperties.Http http = props.getHttp();
+		Executor executor = asyncExecutor.getIfAvailable();
+		// With async delivery on, use non-blocking retry so backoff never ties up a pool
+		// thread; with synchronous delivery, keep the blocking retry on the caller.
 		HttpClientConfig httpConfig = HttpClientConfig.of(http.getConnectTimeout(), http.getReadTimeout(),
-				http.getMaxAttempts(), http.getRetryBackoff());
+				http.getMaxAttempts(), http.getRetryBackoff(), executor != null);
 		NotificationsConfig config = NotificationsConfig.builder()
 			.ignoreChanges(props.getIgnoreChanges())
 			.includeLog(props.isLog())
 			.http(httpConfig)
-			.executor(asyncExecutor.getIfAvailable())
+			.executor(executor)
 			.metrics(metrics.getIfAvailable())
 			.build();
 		return new NotificationsFactory<>(adapter, config);

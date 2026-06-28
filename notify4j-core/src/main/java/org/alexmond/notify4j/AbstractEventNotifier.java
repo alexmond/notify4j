@@ -35,7 +35,13 @@ public abstract class AbstractEventNotifier<E> implements Notifier<E> {
 				return;
 			}
 			doNotify(event);
-			metrics.recordSent(channelName());
+			// A notifier that completes asynchronously records its own sent/failed
+			// outcome
+			// when delivery finishes; we must not record success just because doNotify
+			// returned (it only launched the delivery).
+			if (!deliversAsync()) {
+				metrics.recordSent(channelName());
+			}
 		}
 		catch (RuntimeException ex) {
 			metrics.recordFailed(channelName());
@@ -46,6 +52,26 @@ public abstract class AbstractEventNotifier<E> implements Notifier<E> {
 	/** Whether this event should be delivered (default: always). */
 	protected boolean shouldNotify(E event) {
 		return true;
+	}
+
+	/**
+	 * Whether {@link #doNotify} completes the delivery asynchronously (returning before
+	 * the outcome is known). When {@code true}, the subclass records the outcome itself
+	 * via {@link #recordDelivered} / {@link #recordDeliveryFailed}. Default
+	 * {@code false}.
+	 */
+	protected boolean deliversAsync() {
+		return false;
+	}
+
+	/** Record a successful delivery; for {@link #deliversAsync() async} notifiers. */
+	protected final void recordDelivered() {
+		metrics.recordSent(channelName());
+	}
+
+	/** Record a failed delivery; for {@link #deliversAsync() async} notifiers. */
+	protected final void recordDeliveryFailed() {
+		metrics.recordFailed(channelName());
 	}
 
 	/** Deliver the notification. May throw; the wrapper swallows and logs. */

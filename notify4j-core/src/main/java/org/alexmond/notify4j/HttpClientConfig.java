@@ -14,13 +14,22 @@ import java.time.Duration;
  * through to the channels; callers that don't configure HTTP get {@link #defaults()} (10s
  * connect, 10s read, no retry).
  *
+ * <p>
+ * {@code nonBlockingRetry} controls how retries wait: when {@code false} (default) the
+ * delivery blocks the calling thread and sleeps between attempts (fine for synchronous
+ * use); when {@code true} the channel delivers via the async HTTP client and schedules
+ * retries without holding a thread, so retry backoff never ties up the shared delivery
+ * pool. The starter enables it whenever asynchronous delivery is on.
+ *
  * @param client the shared JDK HTTP client (connect timeout baked in)
  * @param requestTimeout per-request read timeout
  * @param maxAttempts total delivery attempts per send; {@code 1} disables retry
  * @param retryBackoff base backoff between retries (doubled each attempt, capped)
+ * @param nonBlockingRetry deliver asynchronously and schedule retries off-thread
  * @since 1.0.0
  */
-public record HttpClientConfig(HttpClient client, Duration requestTimeout, int maxAttempts, Duration retryBackoff) {
+public record HttpClientConfig(HttpClient client, Duration requestTimeout, int maxAttempts, Duration retryBackoff,
+		boolean nonBlockingRetry) {
 
 	private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
 
@@ -41,9 +50,15 @@ public record HttpClientConfig(HttpClient client, Duration requestTimeout, int m
 		return of(connectTimeout, requestTimeout, 1, DEFAULT_BACKOFF);
 	}
 
-	/** Build a config with the given timeouts and retry policy. */
+	/** Build a config with the given timeouts and retry policy (blocking retry). */
 	public static HttpClientConfig of(Duration connectTimeout, Duration requestTimeout, int maxAttempts,
 			Duration retryBackoff) {
+		return of(connectTimeout, requestTimeout, maxAttempts, retryBackoff, false);
+	}
+
+	/** Build a config with the given timeouts, retry policy, and retry-wait mode. */
+	public static HttpClientConfig of(Duration connectTimeout, Duration requestTimeout, int maxAttempts,
+			Duration retryBackoff, boolean nonBlockingRetry) {
 		// Redirects are pinned to NEVER (rather than relying on the JDK default) so a
 		// credentialed POST can't be bounced by a 3xx to an attacker-chosen host —
 		// channel requests carry secrets in headers/body. Do not relax this.
@@ -51,7 +66,7 @@ public record HttpClientConfig(HttpClient client, Duration requestTimeout, int m
 			.connectTimeout(connectTimeout)
 			.followRedirects(HttpClient.Redirect.NEVER)
 			.build();
-		return new HttpClientConfig(client, requestTimeout, Math.max(1, maxAttempts), retryBackoff);
+		return new HttpClientConfig(client, requestTimeout, Math.max(1, maxAttempts), retryBackoff, nonBlockingRetry);
 	}
 
 }
