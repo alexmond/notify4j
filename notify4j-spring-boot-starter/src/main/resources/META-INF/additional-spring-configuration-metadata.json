@@ -1,0 +1,52 @@
+{
+  "properties": [
+    {
+      "name": "notify4j.global",
+      "type": "java.lang.Boolean",
+      "description": "Whether to create the single application-wide Notifications facade from notify4j.urls. Set false in multi-tenant apps that build one facade per tenant from the injected NotificationsFactory instead.",
+      "defaultValue": true
+    }
+  ],
+  "hints": [
+    {
+      "name": "notify4j.ignore-changes",
+      "values": [
+        {
+          "value": "*:PENDING",
+          "description": "Suppress any transition whose new status is PENDING."
+        },
+        {
+          "value": "*:RUNNING",
+          "description": "Suppress any transition whose new status is RUNNING."
+        },
+        {
+          "value": "*:ASSIGNED",
+          "description": "Suppress any transition whose new status is ASSIGNED."
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    },
+    {
+      "name": "notify4j.urls",
+      "values": [
+        {
+          "value": "slack://hooks.slack.com/services/T000/B000/XXXX",
+          "description": "Slack incoming webhook."
+        },
+        {
+          "value": "pagerduty://<routing-key>?tags=failed",
+          "description": "PagerDuty Events API, routed to events tagged 'failed'."
+        }
+      ],
+      "providers": [
+        {
+          "name": "any"
+        }
+      ]
+    }
+  ]
+}
