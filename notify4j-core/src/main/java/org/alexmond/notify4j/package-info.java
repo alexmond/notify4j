@@ -33,9 +33,10 @@
  * ({@code AsyncNotifier}, {@code CompositeNotifier}, {@code FilteringNotifier},
  * {@code RemindingNotifier}, {@code LoggingNotifier}), the {@code Abstract*} extension
  * points, the URL grammar of {@code NotifierUrlParser}, and the discovery API
- * ({@code ChannelCatalog} + {@code ChannelDescriptor}/{@code ChannelField}/{@code FieldType}/
- * {@code ChannelValidationError}/{@code ParsedChannel}, since 1.1.0). These follow semantic
- * versioning within 1.x.
+ * ({@code ChannelCatalog} +
+ * {@code ChannelDescriptor}/{@code ChannelField}/{@code FieldType}/
+ * {@code ChannelValidationError}/{@code ParsedChannel}, since 1.1.0). These follow
+ * semantic versioning within 1.x.
  *
  * <p>
  * The {@link org.alexmond.notify4j.internal} package is <strong>not</strong> public API:
