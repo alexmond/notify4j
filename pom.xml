@@ -137,6 +137,13 @@
                              not the slow async publish step, whose poll window timed out on 0.4.0
                              even though publishing succeeded. autoPublish still publishes once validated. -->
                         <waitUntil>validated</waitUntil>
+                        <!-- This aggregator plugin ignores maven.deploy.skip, so guard non-library
+                             modules by artifactId. The sample is only in the -Pdefault reactor today,
+                             but this keeps it (and any future example/codegen module) off Central even
+                             if the reactor changes. The real libraries (bom/core/starter) still publish. -->
+                        <excludeArtifacts>
+                            <excludeArtifact>notify4j-sample</excludeArtifact>
+                        </excludeArtifacts>
                     </configuration>
                 </plugin>
                 <plugin>
