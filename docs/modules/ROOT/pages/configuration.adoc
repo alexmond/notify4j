@@ -290,3 +290,32 @@ pool across tenants and shut it down on app stop (`Notifications.close()` does n
 * `NotificationsConfig.defaults()` (or `new NotificationsFactory<>(adapter)`) silently gives 10s
 timeouts, *single attempt*, *synchronous*, and no metrics — fine for a quick start, but call it
 out so multi-tenant apps don't ship that unintentionally.
+
+== Channel discovery (catalog)
+
+To build a "pick a channel → fill the fields → save" UI without hardcoding the scheme list
+or URL assembly, query the read-only `ChannelCatalog` (since 1.1.0):
+
+[source,java]
+----
+ChannelCatalog catalog = ChannelCatalog.standard();
+
+// render a picker + form, data-driven (every channel notify4j adds shows up automatically)
+for (ChannelDescriptor d : catalog.catalog()) {
+    for (ChannelField f : d.fields()) {
+        render(f.key(), f.type(), f.required(), f.secret());   // mask secret fields
+    }
+}
+
+// notify4j owns URL assembly (separators, default hosts, +http, ?tags) — never concatenate
+var errors = catalog.validate("twilio", values);               // field-keyed; empty == valid
+String url = catalog.buildUrl("twilio", values, Set.of("failed"), false);
+
+// edit screen: decompose a stored URL back into fields (secrets come back masked)
+ParsedChannel parsed = catalog.parse(url);                     // values, tags, transport
+String safe = catalog.redact(url);                             // scheme://host/… for display
+----
+
+`buildUrl` output is guaranteed to parse (a per-scheme round-trip test pins the catalog to the
+URL parser). Secret fields are masked by `parse` (as `ChannelCatalog.MASKED_SECRET`); leave a
+masked field untouched on save to keep the existing secret.
