@@ -157,6 +157,41 @@ class ChannelCatalogTest {
 		assertThat(parsed.values().get("token")).isEqualTo(ChannelCatalog.MASKED_SECRET);
 	}
 
+	@Test
+	void edgeAndDegenerateInputsAreHandledDefensively() {
+		// credential-only with an explicit host (userInfo branch) + +https explicit
+		// transport
+		assertThat(catalog.parse("pagerduty://key@events.pagerduty.com").values().get("routingKey"))
+			.isEqualTo(ChannelCatalog.MASKED_SECRET);
+		assertThat(catalog.parse("slack+https://h/x").cleartextHttp()).isFalse();
+
+		// query with kept non-tags params + tags extracted; version found
+		ParsedChannel wa = catalog.parse("whatsapp://t@PHID/+1?version=v9&foo=bar&tags=ops");
+		assertThat(wa.values()).containsEntry("version", "v9");
+		assertThat(wa.tags()).containsExactly("ops");
+		// query present but version absent (queryParam not-found path)
+		assertThat(catalog.parse("whatsapp://t@PHID/+1?foo=bar").values()).doesNotContainKey("version");
+
+		// degenerate forms (missing delimiters) must not throw — defensive fallbacks
+		for (String u : List.of("twilio://x", "signal://x", "zulip://x", "matrix://x", "mastodon://x", "pushover://x",
+				"telegram://h")) {
+			assertThatCode(() -> catalog.parse(u)).as(u).doesNotThrowAnyException();
+		}
+
+		// buildUrl: null values, null tags, null/unknown scheme
+		assertThat(catalog.buildUrl("slack", null)).isEqualTo("slack://");
+		assertThat(catalog.buildUrl("slack", Map.of("url", "h/x"), null, false)).isEqualTo("slack://h/x");
+		assertThatThrownBy(() -> catalog.buildUrl(null, Map.of())).isInstanceOf(IllegalArgumentException.class);
+
+		// describe/validate null + blank-value branch
+		assertThat(catalog.describe(null)).isEmpty();
+		assertThat(catalog.validate(null, Map.of())).singleElement()
+			.satisfies((e) -> assertThat(e.code()).isEqualTo("unknown_scheme"));
+		assertThat(catalog.validate("ntfy", Map.of("host", "h", "topic", " ")))
+			.extracting(ChannelValidationError::fieldKey)
+			.contains("topic");
+	}
+
 	private static NotificationAdapter<String> adapter() {
 		return new NotificationAdapter<>() {
 			@Override
