@@ -141,6 +141,21 @@ class ChannelCatalogTest {
 	}
 
 	@Test
+	void blueskyDefaultHostIsElidedAndOptional() {
+		// no host -> default bsky.social, omitted from the URL
+		assertThat(catalog.buildUrl("bluesky", Map.of("identifier", "alice", "appPassword", "pw")))
+			.isEqualTo("bluesky://alice:pw");
+		// explicit default host -> still elided (canonical form)
+		assertThat(
+				catalog.buildUrl("bluesky", Map.of("identifier", "alice", "appPassword", "pw", "host", "bsky.social")))
+			.isEqualTo("bluesky://alice:pw");
+
+		ParsedChannel p = catalog.parse("bluesky://alice:pw");
+		assertThat(p.values()).containsEntry("identifier", "alice").doesNotContainKey("host");
+		assertThat(p.values().get("appPassword")).isEqualTo(ChannelCatalog.MASKED_SECRET);
+	}
+
+	@Test
 	void redactMasksSecrets() {
 		assertThat(catalog.redact("telegram://api.telegram.org/BOT-SECRET/42")).doesNotContain("BOT-SECRET");
 	}
