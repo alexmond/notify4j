@@ -41,6 +41,8 @@ class ChannelCatalogTest {
 				"general", "topic", "deploys"));
 		s.put("matrix", Map.of("token", "MX-SECRET", "host", "matrix.org", "roomId", "!room:matrix.org"));
 		s.put("mastodon", Map.of("token", "MA-SECRET", "host", "mastodon.social"));
+		s.put("bluesky",
+				Map.of("identifier", "alice.bsky.social", "appPassword", "app-pass-1234", "host", "bsky.example"));
 		s.put("pagerduty", Map.of("routingKey", "RK-SECRET"));
 		s.put("opsgenie", Map.of("apiKey", "OG-SECRET"));
 		s.put("pushbullet", Map.of("accessToken", "PB-SECRET"));
@@ -49,8 +51,8 @@ class ChannelCatalogTest {
 
 	@Test
 	void everyParserSchemeHasADescriptor() {
-		// 20 URL schemes (email is not a URL channel)
-		assertThat(catalog.catalog()).hasSize(20);
+		// 21 URL schemes (email is not a URL channel)
+		assertThat(catalog.catalog()).hasSize(21);
 		assertThat(samples().keySet())
 			.containsExactlyInAnyOrderElementsOf(catalog.catalog().stream().map(ChannelDescriptor::scheme).toList());
 	}
@@ -136,6 +138,21 @@ class ChannelCatalogTest {
 	void describeUnknownIsEmpty_buildUrlUnknownThrows() {
 		assertThat(catalog.describe("bogus")).isEmpty();
 		assertThatThrownBy(() -> catalog.buildUrl("bogus", Map.of())).isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	void blueskyDefaultHostIsElidedAndOptional() {
+		// no host -> default bsky.social, omitted from the URL
+		assertThat(catalog.buildUrl("bluesky", Map.of("identifier", "alice", "appPassword", "pw")))
+			.isEqualTo("bluesky://alice:pw");
+		// explicit default host -> still elided (canonical form)
+		assertThat(
+				catalog.buildUrl("bluesky", Map.of("identifier", "alice", "appPassword", "pw", "host", "bsky.social")))
+			.isEqualTo("bluesky://alice:pw");
+
+		ParsedChannel p = catalog.parse("bluesky://alice:pw");
+		assertThat(p.values()).containsEntry("identifier", "alice").doesNotContainKey("host");
+		assertThat(p.values().get("appPassword")).isEqualTo(ChannelCatalog.MASKED_SECRET);
 	}
 
 	@Test

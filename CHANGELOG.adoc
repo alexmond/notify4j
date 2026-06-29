@@ -2,8 +2,10 @@
 
 == Unreleased
 
-* New channels: Matrix (`matrix://<access-token>@<homeserver>/<room-id>`, Client-Server API)
-  and Mastodon (`mastodon://<access-token>@<instance-host>`).
+* New channels: Matrix (`matrix://<access-token>@<homeserver>/<room-id>`, Client-Server API),
+  Mastodon (`mastodon://<access-token>@<instance-host>`), and Bluesky
+  (`bluesky://<identifier>:<app-password>[@<pds-host>]`, AT Protocol — creates a session then
+  posts).
 * `ExpiringFilter` accepts an optional `Clock` so expiry can be driven deterministically
   (the existing constructor still uses the system clock).
 * Channel discovery API (`ChannelCatalog`, via `ChannelCatalog.standard()`): enumerate every

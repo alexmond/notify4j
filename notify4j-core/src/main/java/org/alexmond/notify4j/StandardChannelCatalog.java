@@ -181,6 +181,10 @@ final class StandardChannelCatalog implements ChannelCatalog {
 				new Spec("mastodon",
 						List.of(field("token", FieldType.TEXT, true, true), field("host", FieldType.TEXT, true, false)),
 						(v) -> g(v, "token") + "@" + g(v, "host"), (rest) -> two(rest, "@", "token", "host")));
+		m.put("bluesky",
+				new Spec("bluesky", List.of(field("identifier", FieldType.TEXT, true, false),
+						field("appPassword", FieldType.TEXT, true, true), field("host", FieldType.TEXT, false, false)),
+						StandardChannelCatalog::asmBluesky, StandardChannelCatalog::disBluesky));
 		m.put("pagerduty", credentialOnly("pagerduty", "routingKey"));
 		m.put("opsgenie", credentialOnly("opsgenie", "apiKey"));
 		m.put("pushbullet", credentialOnly("pushbullet", "accessToken"));
@@ -253,6 +257,25 @@ final class StandardChannelCatalog implements ChannelCatalog {
 		String key = (colon < 0 || at < 0) ? "" : rest.substring(colon + 1, at);
 		String[] hp = ((at < 0) ? "" : rest.substring(at + 1)).split("/");
 		return map("botEmail", email, "apiKey", key, "host", seg(hp, 0), "stream", seg(hp, 1), "topic", seg(hp, 2));
+	}
+
+	private static String asmBluesky(Map<String, String> v) {
+		String base = g(v, "identifier") + ":" + g(v, "appPassword");
+		String host = g(v, "host");
+		return (!host.isEmpty() && !"bsky.social".equals(host)) ? base + "@" + host : base;
+	}
+
+	private static Map<String, String> disBluesky(String rest) {
+		int at = rest.indexOf('@');
+		String creds = (at < 0) ? rest : rest.substring(0, at);
+		int colon = creds.indexOf(':');
+		String identifier = (colon < 0) ? creds : creds.substring(0, colon);
+		String appPassword = (colon < 0) ? "" : creds.substring(colon + 1);
+		Map<String, String> m = map("identifier", identifier, "appPassword", appPassword);
+		if (at >= 0 && !rest.substring(at + 1).isEmpty()) {
+			m.put("host", rest.substring(at + 1)); // only when an explicit host was given
+		}
+		return m;
 	}
 
 	private static Map<String, String> disMatrix(String rest) {

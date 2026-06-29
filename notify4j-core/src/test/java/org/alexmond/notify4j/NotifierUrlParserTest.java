@@ -1,5 +1,6 @@
 package org.alexmond.notify4j;
 
+import org.alexmond.notify4j.internal.BlueskyNotifier;
 import org.alexmond.notify4j.internal.DiscordNotifier;
 import org.alexmond.notify4j.internal.GoogleChatNotifier;
 import org.alexmond.notify4j.internal.GotifyNotifier;
@@ -77,6 +78,9 @@ class NotifierUrlParserTest {
 		assertThat(notifier("pushbullet://o.access-token")).isInstanceOf(PushbulletNotifier.class);
 		assertThat(notifier("matrix://tok@matrix.org/!room:matrix.org")).isInstanceOf(MatrixNotifier.class);
 		assertThat(notifier("mastodon://tok@mastodon.social")).isInstanceOf(MastodonNotifier.class);
+		assertThat(notifier("bluesky://alice.bsky.social:app-pass@bsky.social")).isInstanceOf(BlueskyNotifier.class);
+		assertThat(notifier("bluesky://alice.bsky.social:app-pass")).isInstanceOf(BlueskyNotifier.class); // default
+																											// host
 	}
 
 	@Test
@@ -127,6 +131,10 @@ class NotifierUrlParserTest {
 		assertThatThrownBy(() -> parser.parse("mastodon://tok@")) // blank host
 			.isInstanceOf(IllegalArgumentException.class)
 			.hasMessageContaining("host");
+		assertThatThrownBy(() -> parser.parse("bluesky://no-colon")) // missing
+																		// :app-password
+			.isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("app-password");
 	}
 
 	@Test

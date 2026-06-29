@@ -1,5 +1,6 @@
 package org.alexmond.notify4j;
 
+import org.alexmond.notify4j.internal.BlueskyNotifier;
 import org.alexmond.notify4j.internal.DiscordNotifier;
 import org.alexmond.notify4j.internal.GoogleChatNotifier;
 import org.alexmond.notify4j.internal.GotifyNotifier;
@@ -58,6 +59,7 @@ import org.slf4j.LoggerFactory;
  *   zulip://&lt;bot-email&gt;:&lt;api-key&gt;@&lt;host&gt;/&lt;stream&gt;/&lt;topic&gt;
  *   matrix://&lt;access-token&gt;@&lt;homeserver&gt;/&lt;room-id&gt;
  *   mastodon://&lt;access-token&gt;@&lt;instance-host&gt;
+ *   bluesky://&lt;identifier&gt;:&lt;app-password&gt;@&lt;pds-host&gt;
  *   pushbullet://&lt;access-token&gt;
  *   pagerduty://&lt;routing-key&gt;?tags=failed
  *   opsgenie://&lt;api-key&gt;?tags=failed
@@ -106,7 +108,7 @@ public class NotifierUrlParser<E> {
 	 * unencrypted.
 	 */
 	private static final Set<String> CREDENTIAL_SCHEMES = Set.of("telegram", "gotify", "pushover", "twilio", "whatsapp",
-			"zulip", "pagerduty", "opsgenie", "pushbullet", "matrix", "mastodon");
+			"zulip", "pagerduty", "opsgenie", "pushbullet", "matrix", "mastodon", "bluesky");
 
 	private final Function<E, Object> idFn;
 
@@ -192,6 +194,7 @@ public class NotifierUrlParser<E> {
 			case "zulip" -> zulip(transport, rest, url);
 			case "matrix" -> matrix(transport, rest, url);
 			case "mastodon" -> mastodon(transport, rest, url);
+			case "bluesky" -> bluesky(transport, rest, url);
 			case "pushbullet" -> {
 				String[] ch = credentialAndHost(transport, rest, url, "api.pushbullet.com");
 				yield new PushbulletNotifier<>(ch[1], ch[0], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
@@ -379,6 +382,25 @@ public class NotifierUrlParser<E> {
 		}
 		return new MatrixNotifier<>(transport + "://" + host, token, roomId, httpConfig, idFn, statusFn, messageFn,
 				ignoreChanges);
+	}
+
+	private Notifier<E> bluesky(String transport, String rest, String url) {
+		// bluesky://<identifier>:<app-password>[@<pds-host>] (default host bsky.social)
+		rest = stripQuery(rest);
+		int at = rest.indexOf('@');
+		String creds = (at < 0) ? rest : rest.substring(0, at);
+		int colon = creds.indexOf(':');
+		if (colon < 0) {
+			throw new IllegalArgumentException("bluesky url needs <identifier>:<app-password>[@host]: " + safe(url));
+		}
+		String identifier = creds.substring(0, colon);
+		String appPassword = creds.substring(colon + 1);
+		String host = (at < 0) ? "bsky.social" : rest.substring(at + 1);
+		if (identifier.isBlank() || appPassword.isBlank() || host.isBlank()) {
+			throw new IllegalArgumentException("bluesky url needs <identifier>:<app-password>[@host]: " + safe(url));
+		}
+		return new BlueskyNotifier<>(transport + "://" + host, identifier, appPassword, httpConfig, idFn, statusFn,
+				messageFn, ignoreChanges);
 	}
 
 	private Notifier<E> twilio(String transport, String rest, String url) {

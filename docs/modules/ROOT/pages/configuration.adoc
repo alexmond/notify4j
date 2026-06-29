@@ -160,6 +160,9 @@ before the endpoint is built.
 | `mastodon`
 | `mastodon://<access-token>@<instance-host>` (posts a status)
 
+| `bluesky`
+| `bluesky://<identifier>:<app-password>[@<pds-host>]` (AT Protocol; default host `bsky.social`)
+
 | `pushbullet`
 | `pushbullet://<access-token>`
 
