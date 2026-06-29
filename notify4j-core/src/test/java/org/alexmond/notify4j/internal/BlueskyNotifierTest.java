@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import com.sun.net.httpserver.HttpServer;
 import org.alexmond.notify4j.HttpClientConfig;
@@ -27,8 +29,13 @@ class BlueskyNotifierTest {
 
 	private final AtomicReference<String> recordAuth = new AtomicReference<>();
 
+	private final AtomicInteger recordHits = new AtomicInteger();
+
+	private volatile int recordStatus = 200;
+
 	@BeforeEach
 	void startServer() throws Exception {
+		recordStatus = 200;
 		server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
 		server.createContext("/xrpc/com.atproto.server.createSession", (exchange) -> {
 			sessionBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
@@ -38,12 +45,22 @@ class BlueskyNotifierTest {
 			exchange.close();
 		});
 		server.createContext("/xrpc/com.atproto.repo.createRecord", (exchange) -> {
+			recordHits.incrementAndGet();
 			recordAuth.set(exchange.getRequestHeaders().getFirst("Authorization"));
 			recordBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
-			exchange.sendResponseHeaders(200, -1);
+			exchange.sendResponseHeaders(recordStatus, -1);
 			exchange.close();
 		});
 		server.start();
+	}
+
+	private BlueskyNotifier<Evt> notifier(String base, List<String> ignoreChanges) {
+		return new BlueskyNotifier<>(base, "alice.bsky.social", "app-pass-1234", HttpClientConfig.defaults(), Evt::id,
+				Evt::status, Evt::message, ignoreChanges);
+	}
+
+	private String base() {
+		return "http://127.0.0.1:" + server.getAddress().getPort();
 	}
 
 	@AfterEach
@@ -84,6 +101,54 @@ class BlueskyNotifierTest {
 				Evt::status, Evt::message, List.of())
 			.notify(new Evt(2, "FAILED", "x"))).doesNotThrowAnyException();
 		assertThat(recordBody.get()).isNull(); // never reached createRecord
+	}
+
+	@Test
+	void escapesSpecialCharactersInThePost() {
+		notifier(base(), List.of()).notify(new Evt(3, "FAILED", "a\"b\nc\td\\e"));
+		assertThat(recordBody.get()).contains("\\\"").contains("\\n").contains("\\t").contains("\\\\");
+	}
+
+	@Test
+	void missingSessionFieldsAreSwallowed() {
+		server.removeContext("/xrpc/com.atproto.server.createSession");
+		server.createContext("/xrpc/com.atproto.server.createSession", (exchange) -> {
+			byte[] out = "{\"did\":\"x\"}".getBytes(StandardCharsets.UTF_8); // no
+																				// accessJwt
+			exchange.sendResponseHeaders(200, out.length);
+			exchange.getResponseBody().write(out);
+			exchange.close();
+		});
+		assertThatCode(() -> notifier(base(), List.of()).notify(new Evt(4, "FAILED", "x"))).doesNotThrowAnyException();
+		assertThat(recordHits.get()).isZero();
+	}
+
+	@Test
+	void recordFailureIsSwallowed() {
+		recordStatus = 500;
+		assertThatCode(() -> notifier(base(), List.of()).notify(new Evt(5, "FAILED", "x"))).doesNotThrowAnyException();
+		assertThat(recordHits.get()).isEqualTo(1);
+	}
+
+	@Test
+	void connectionErrorIsSwallowed() throws Exception {
+		int deadPort;
+		try (ServerSocket s = new ServerSocket(0)) {
+			deadPort = s.getLocalPort();
+		}
+		assertThatCode(() -> notifier("http://127.0.0.1:" + deadPort, List.of()).notify(new Evt(6, "FAILED", "x")))
+			.doesNotThrowAnyException();
+	}
+
+	@Test
+	void forgetTransitionResetsDedup() {
+		BlueskyNotifier<Evt> n = notifier(base(), List.of());
+		n.notify(new Evt(7, "FAILED", "x")); // delivered (transition)
+		n.notify(new Evt(7, "FAILED", "x")); // suppressed (same status)
+		assertThat(recordHits.get()).isEqualTo(1);
+		n.forgetTransition(7L);
+		n.notify(new Evt(7, "FAILED", "x")); // delivered again after reset
+		assertThat(recordHits.get()).isEqualTo(2);
 	}
 
 	private record Evt(long id, String status, String message) {
