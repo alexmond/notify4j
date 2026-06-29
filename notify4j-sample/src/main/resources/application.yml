@@ -51,6 +51,16 @@ notify4j:
     enabled: true
     pool-size: 4
 
+  # Reminders: re-notify every channel for an entity stuck in a configured status until it
+  # resolves. The sample uses fast intervals so the startup demo shows a re-fire; real apps
+  # use minutes/hours. Off by default (enabled here for the demo).
+  reminders:
+    enabled: true
+    statuses:
+      - FAILED
+    period: 200ms          # re-notify after the entity stays FAILED this long
+    check-interval: 100ms   # how often the scheduler checks
+
   # Email is the one non-URL channel: it uses spring.mail.* for SMTP and activates only
   # when notify4j.email.to is set.
   # email:

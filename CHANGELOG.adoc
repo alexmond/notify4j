@@ -4,6 +4,8 @@
 
 * New channels: Matrix (`matrix://<access-token>@<homeserver>/<room-id>`, Client-Server API)
   and Mastodon (`mastodon://<access-token>@<instance-host>`).
+* `ExpiringFilter` accepts an optional `Clock` so expiry can be driven deterministically
+  (the existing constructor still uses the system clock).
 * Channel discovery API (`ChannelCatalog`, via `ChannelCatalog.standard()`): enumerate every
   channel and its fields (`catalog()`/`describe()`), build a valid URL from field values
   (`buildUrl()`), validate required fields (`validate()`), decompose an existing URL back into

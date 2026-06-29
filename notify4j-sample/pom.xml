@@ -25,6 +25,12 @@
             <artifactId>notify4j-spring-boot-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Provides a MeterRegistry so the starter wires notify4j's delivery metrics
+             (a real app usually gets this from spring-boot-starter-actuator). -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
