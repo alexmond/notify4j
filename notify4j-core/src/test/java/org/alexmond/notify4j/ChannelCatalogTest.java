@@ -41,6 +41,8 @@ class ChannelCatalogTest {
 				"general", "topic", "deploys"));
 		s.put("matrix", Map.of("token", "MX-SECRET", "host", "matrix.org", "roomId", "!room:matrix.org"));
 		s.put("mastodon", Map.of("token", "MA-SECRET", "host", "mastodon.social"));
+		s.put("bluesky",
+				Map.of("identifier", "alice.bsky.social", "appPassword", "app-pass-1234", "host", "bsky.example"));
 		s.put("pagerduty", Map.of("routingKey", "RK-SECRET"));
 		s.put("opsgenie", Map.of("apiKey", "OG-SECRET"));
 		s.put("pushbullet", Map.of("accessToken", "PB-SECRET"));
@@ -49,8 +51,8 @@ class ChannelCatalogTest {
 
 	@Test
 	void everyParserSchemeHasADescriptor() {
-		// 20 URL schemes (email is not a URL channel)
-		assertThat(catalog.catalog()).hasSize(20);
+		// 21 URL schemes (email is not a URL channel)
+		assertThat(catalog.catalog()).hasSize(21);
 		assertThat(samples().keySet())
 			.containsExactlyInAnyOrderElementsOf(catalog.catalog().stream().map(ChannelDescriptor::scheme).toList());
 	}

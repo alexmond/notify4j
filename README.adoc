@@ -21,7 +21,7 @@ the product — there is no server to run.
   configure `notify4j.urls`.
 * *Channels included* — Slack, MS Teams, Discord, Mattermost, Rocket.Chat, Google Chat, Telegram,
   generic webhook, ntfy, Gotify, Pushover, Pushbullet, Zulip, Matrix, Mastodon, SMS (Twilio),
-  Signal, WhatsApp, PagerDuty, OpsGenie, and email.
+  Signal, WhatsApp, PagerDuty, OpsGenie, Bluesky, and email.
 
 == Get started
 
