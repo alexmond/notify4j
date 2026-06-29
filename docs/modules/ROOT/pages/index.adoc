@@ -10,8 +10,8 @@ to run.
   (configurable from the starter via `notify4j.reminders.*`).
 * Spring-free core + a thin Spring Boot starter.
 * Channels: Slack, Teams, Discord, Mattermost, Rocket.Chat, Google Chat, Telegram, webhook,
-  ntfy, Gotify, Pushover, Pushbullet, SMS (Twilio), Signal, WhatsApp, Zulip, PagerDuty,
-  OpsGenie, and email.
+  ntfy, Gotify, Pushover, Pushbullet, Zulip, Matrix, Mastodon, SMS (Twilio), Signal, WhatsApp,
+  PagerDuty, OpsGenie, and email.
 * Optional per-event title and severity (mapped to each channel's native priority).
 
 == Next

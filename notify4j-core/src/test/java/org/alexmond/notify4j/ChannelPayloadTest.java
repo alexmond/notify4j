@@ -3,6 +3,8 @@ package org.alexmond.notify4j;
 import org.alexmond.notify4j.internal.DiscordNotifier;
 import org.alexmond.notify4j.internal.GoogleChatNotifier;
 import org.alexmond.notify4j.internal.GotifyNotifier;
+import org.alexmond.notify4j.internal.MastodonNotifier;
+import org.alexmond.notify4j.internal.MatrixNotifier;
 import org.alexmond.notify4j.internal.MattermostNotifier;
 import org.alexmond.notify4j.internal.NtfyNotifier;
 import org.alexmond.notify4j.internal.OpsGenieNotifier;
@@ -282,6 +284,27 @@ class ChannelPayloadTest {
 				(e) -> "Deploy", (e) -> Severity.CRITICAL, List.of())
 			.notify(evt());
 		assertThat(body.get()).isEqualTo("token=tok&user=usr&title=Deploy&message=build+broke&priority=2");
+	}
+
+	@Test
+	void mastodonPostsStatus() {
+		new MastodonNotifier<Evt>(base(), "tok", HttpClientConfig.defaults(), Evt::id, Evt::status, Evt::message,
+				List.of())
+			.notify(evt());
+		assertThat(path.get()).isEqualTo("/api/v1/statuses");
+		assertThat(auth.get()).isEqualTo("Bearer tok");
+		assertThat(body.get()).isEqualTo("{\"status\":\"build broke\"}");
+	}
+
+	@Test
+	void matrixPostsTextToRoomSendEndpoint() {
+		new MatrixNotifier<Evt>(base(), "tok", "!room:hs.example", HttpClientConfig.defaults(), Evt::id, Evt::status,
+				Evt::message, List.of())
+			.notify(evt());
+		// the room id is URL-encoded on the wire; the server decodes it back
+		assertThat(path.get()).isEqualTo("/_matrix/client/v3/rooms/!room:hs.example/send/m.room.message");
+		assertThat(auth.get()).isEqualTo("Bearer tok");
+		assertThat(body.get()).isEqualTo("{\"msgtype\":\"m.text\",\"body\":\"build broke\"}");
 	}
 
 	record Evt(long id, String status, String message) {

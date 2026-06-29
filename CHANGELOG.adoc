@@ -1,6 +1,11 @@
 = Changelog
 
-== Unreleased (1.0.0)
+== Unreleased
+
+* New channels: Matrix (`matrix://<access-token>@<homeserver>/<room-id>`, Client-Server API)
+  and Mastodon (`mastodon://<access-token>@<instance-host>`).
+
+== 1.0.0 (2026-06-28)
 
 *API stability:* this is the 1.0 line. The public API — the `Notifier`,
 `NotificationAdapter`, `NotificationFilter`, and `NotificationMetrics` SPIs; the
