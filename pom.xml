@@ -7,7 +7,7 @@
 
     <groupId>org.alexmond</groupId>
     <artifactId>notify4j-parent</artifactId>
-    <version>0.8.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
     <name>notify4j-parent</name>
     <description>Embeddable, domain-agnostic multi-channel notification library for Java/Spring
