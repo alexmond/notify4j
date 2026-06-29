@@ -114,6 +114,22 @@ class NotifierUrlParserTest {
 	}
 
 	@Test
+	void matrixAndMastodonValidateTheirParts() {
+		assertThatThrownBy(() -> parser.parse("matrix://tok@homeserver")) // no /room-id
+			.isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("room-id");
+		assertThatThrownBy(() -> parser.parse("matrix://tok@host/")) // blank room-id
+			.isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("room-id");
+		assertThatThrownBy(() -> parser.parse("mastodon://no-at-here")) // no @host
+			.isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("host");
+		assertThatThrownBy(() -> parser.parse("mastodon://tok@")) // blank host
+			.isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("host");
+	}
+
+	@Test
 	void googleChatKeepsKeyAndTokenQueryParams() {
 		// non-tags query params survive; ?tags= is stripped
 		NotifierUrlParser.Channel<Event> ch = parser
