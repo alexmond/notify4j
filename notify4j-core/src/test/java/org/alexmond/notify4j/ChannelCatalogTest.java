@@ -143,6 +143,20 @@ class ChannelCatalogTest {
 		assertThat(catalog.redact("telegram://api.telegram.org/BOT-SECRET/42")).doesNotContain("BOT-SECRET");
 	}
 
+	@Test
+	void parseRejectsBlankAndSchemelessUrls() {
+		assertThatThrownBy(() -> catalog.parse("  ")).isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> catalog.parse("no-scheme-here")).isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> catalog.parse("bogus://x")).isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	void parseWhatsappWithoutVersionOmitsTheField() {
+		ParsedChannel parsed = catalog.parse("whatsapp://WA-SECRET@PHID/+15551111");
+		assertThat(parsed.values()).containsEntry("phoneId", "PHID").doesNotContainKey("version");
+		assertThat(parsed.values().get("token")).isEqualTo(ChannelCatalog.MASKED_SECRET);
+	}
+
 	private static NotificationAdapter<String> adapter() {
 		return new NotificationAdapter<>() {
 			@Override
