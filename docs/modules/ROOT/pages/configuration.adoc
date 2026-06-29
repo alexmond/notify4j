@@ -154,6 +154,12 @@ before the endpoint is built.
 | `zulip`
 | `zulip://<bot-email>:<api-key>@<host>/<stream>/<topic>`
 
+| `matrix`
+| `matrix://<access-token>@<homeserver>/<room-id>` (Client-Server API)
+
+| `mastodon`
+| `mastodon://<access-token>@<instance-host>` (posts a status)
+
 | `pushbullet`
 | `pushbullet://<access-token>`
 

@@ -3,6 +3,8 @@ package org.alexmond.notify4j;
 import org.alexmond.notify4j.internal.DiscordNotifier;
 import org.alexmond.notify4j.internal.GoogleChatNotifier;
 import org.alexmond.notify4j.internal.GotifyNotifier;
+import org.alexmond.notify4j.internal.MastodonNotifier;
+import org.alexmond.notify4j.internal.MatrixNotifier;
 import org.alexmond.notify4j.internal.MattermostNotifier;
 import org.alexmond.notify4j.internal.NtfyNotifier;
 import org.alexmond.notify4j.internal.OpsGenieNotifier;
@@ -54,6 +56,8 @@ import org.slf4j.LoggerFactory;
  *   signal://&lt;bridge-host&gt;/&lt;from&gt;/&lt;to&gt;
  *   whatsapp://&lt;token&gt;@&lt;phone-number-id&gt;/&lt;to&gt;?version=v22.0
  *   zulip://&lt;bot-email&gt;:&lt;api-key&gt;@&lt;host&gt;/&lt;stream&gt;/&lt;topic&gt;
+ *   matrix://&lt;access-token&gt;@&lt;homeserver&gt;/&lt;room-id&gt;
+ *   mastodon://&lt;access-token&gt;@&lt;instance-host&gt;
  *   pushbullet://&lt;access-token&gt;
  *   pagerduty://&lt;routing-key&gt;?tags=failed
  *   opsgenie://&lt;api-key&gt;?tags=failed
@@ -102,7 +106,7 @@ public class NotifierUrlParser<E> {
 	 * unencrypted.
 	 */
 	private static final Set<String> CREDENTIAL_SCHEMES = Set.of("telegram", "gotify", "pushover", "twilio", "whatsapp",
-			"zulip", "pagerduty", "opsgenie", "pushbullet");
+			"zulip", "pagerduty", "opsgenie", "pushbullet", "matrix", "mastodon");
 
 	private final Function<E, Object> idFn;
 
@@ -186,6 +190,8 @@ public class NotifierUrlParser<E> {
 			case "signal" -> signal(transport, rest, url);
 			case "whatsapp" -> whatsapp(transport, rest, url);
 			case "zulip" -> zulip(transport, rest, url);
+			case "matrix" -> matrix(transport, rest, url);
+			case "mastodon" -> mastodon(transport, rest, url);
 			case "pushbullet" -> {
 				String[] ch = credentialAndHost(transport, rest, url, "api.pushbullet.com");
 				yield new PushbulletNotifier<>(ch[1], ch[0], httpConfig, idFn, statusFn, messageFn, ignoreChanges);
@@ -335,6 +341,44 @@ public class NotifierUrlParser<E> {
 		String baseUrl = transport + "://api.pushover.net";
 		return new PushoverNotifier<>(baseUrl, parts[0], parts[1], httpConfig, idFn, statusFn, messageFn, titleFn,
 				severityFn, ignoreChanges);
+	}
+
+	private Notifier<E> mastodon(String transport, String rest, String url) {
+		// mastodon://<access-token>@<instance-host>
+		rest = stripQuery(rest);
+		int at = rest.indexOf('@');
+		if (at < 0) {
+			throw new IllegalArgumentException("mastodon url needs <access-token>@<host>: " + safe(url));
+		}
+		String token = rest.substring(0, at);
+		String host = rest.substring(at + 1);
+		if (token.isBlank() || host.isBlank()) {
+			throw new IllegalArgumentException("mastodon url needs <access-token>@<host>: " + safe(url));
+		}
+		return new MastodonNotifier<>(transport + "://" + host, token, httpConfig, idFn, statusFn, messageFn,
+				ignoreChanges);
+	}
+
+	private Notifier<E> matrix(String transport, String rest, String url) {
+		// matrix://<access-token>@<homeserver>/<room-id> (room id may contain ':')
+		rest = stripQuery(rest);
+		int at = rest.indexOf('@');
+		if (at < 0) {
+			throw new IllegalArgumentException("matrix url needs <access-token>@<host>/<room-id>: " + safe(url));
+		}
+		String remainder = rest.substring(at + 1);
+		int slash = remainder.indexOf('/');
+		if (slash < 0) {
+			throw new IllegalArgumentException("matrix url needs <access-token>@<host>/<room-id>: " + safe(url));
+		}
+		String token = rest.substring(0, at);
+		String host = remainder.substring(0, slash);
+		String roomId = remainder.substring(slash + 1);
+		if (token.isBlank() || host.isBlank() || roomId.isBlank()) {
+			throw new IllegalArgumentException("matrix url needs <access-token>@<host>/<room-id>: " + safe(url));
+		}
+		return new MatrixNotifier<>(transport + "://" + host, token, roomId, httpConfig, idFn, statusFn, messageFn,
+				ignoreChanges);
 	}
 
 	private Notifier<E> twilio(String transport, String rest, String url) {

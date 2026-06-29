@@ -3,6 +3,8 @@ package org.alexmond.notify4j;
 import org.alexmond.notify4j.internal.DiscordNotifier;
 import org.alexmond.notify4j.internal.GoogleChatNotifier;
 import org.alexmond.notify4j.internal.GotifyNotifier;
+import org.alexmond.notify4j.internal.MastodonNotifier;
+import org.alexmond.notify4j.internal.MatrixNotifier;
 import org.alexmond.notify4j.internal.MattermostNotifier;
 import org.alexmond.notify4j.internal.NtfyNotifier;
 import org.alexmond.notify4j.internal.OpsGenieNotifier;
@@ -73,6 +75,8 @@ class NotifierUrlParserTest {
 		assertThat(notifier("zulip://bot@x.com:key@myorg.zulipchat.com/general/deploys"))
 			.isInstanceOf(ZulipNotifier.class);
 		assertThat(notifier("pushbullet://o.access-token")).isInstanceOf(PushbulletNotifier.class);
+		assertThat(notifier("matrix://tok@matrix.org/!room:matrix.org")).isInstanceOf(MatrixNotifier.class);
+		assertThat(notifier("mastodon://tok@mastodon.social")).isInstanceOf(MastodonNotifier.class);
 	}
 
 	@Test
