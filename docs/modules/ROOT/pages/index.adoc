@@ -1,4 +1,5 @@
 = notify4j
+:description: Embeddable multi-channel notification library for the JVM — Slack, Teams, Discord, Telegram, ntfy, PagerDuty and 13 channels via Apprise-style URLs. No server required.
 
 An embeddable, domain-agnostic multi-channel notification library for Java / Spring Boot — no server
 to run.
