@@ -12,9 +12,15 @@
   channel and its fields (`catalog()`/`describe()`), build a valid URL from field values
   (`buildUrl()`), validate required fields (`validate()`), decompose an existing URL back into
   fields for editing with secrets masked (`parse()`), and redact a URL for display
-  (`redact()`). Lets a consumer render a "pick a channel → fill the fields" UI data-driven —
-  every channel notify4j adds appears automatically. notify4j owns URL assembly, so
-  `buildUrl` output round-trips through the parser (pinned by a per-scheme test).
+  (`redact()`). Descriptors and fields carry UI display metadata — channel `displayName` and
+  `docsUrl`, per-field `label`, `description`, and (non-secret) `example` — so a "pick a
+  channel → fill the fields" form is fully data-driven; every channel notify4j adds appears
+  automatically. A `URL`-typed field may be pasted with or without its `http(s)://` prefix
+  (`https://` is stripped, `http://` selects the `+http` transport). Editing is closed by
+  `recompose(priorUrl, editedValues)`, which preserves any secret the operator left masked,
+  and by a symmetric `buildUrl(ParsedChannel)` (which refuses a still-masked secret rather
+  than corrupting it). notify4j owns URL assembly, so `buildUrl` output round-trips through
+  the parser (pinned by a per-scheme test).
 
 == 1.0.0 (2026-06-28)
 

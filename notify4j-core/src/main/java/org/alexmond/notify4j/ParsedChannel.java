@@ -10,9 +10,10 @@ import java.util.Set;
  * <p>
  * <strong>Secrets are masked.</strong> Every {@link ChannelField#secret() secret} field
  * that had a value is returned as {@link ChannelCatalog#MASKED_SECRET} rather than the
- * real credential — so the value never round-trips through the UI. The "blank/unchanged =
- * keep existing" pattern: when the operator leaves a masked field untouched, re-derive
- * the URL from the stored original rather than from the masked value.
+ * real credential — so the value never round-trips through the UI. To recompose an edited
+ * channel while keeping a secret the operator left untouched, pass the edits back through
+ * {@link ChannelCatalog#recompose} with the original URL; it fills masked fields from the
+ * original rather than writing the mask as the credential.
  *
  * @param scheme the channel scheme
  * @param values field key → value, in descriptor order; secret values are masked, absent

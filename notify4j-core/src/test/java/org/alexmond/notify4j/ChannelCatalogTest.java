@@ -209,6 +209,110 @@ class ChannelCatalogTest {
 			.contains("topic");
 	}
 
+	@Test
+	void descriptorsAndFieldsCarryDisplayMetadata() {
+		ChannelDescriptor slack = catalog.describe("slack").orElseThrow();
+		assertThat(slack.displayName()).isEqualTo("Slack");
+		assertThat(slack.docsUrl()).startsWith("https://");
+
+		for (ChannelDescriptor d : catalog.catalog()) {
+			assertThat(d.displayName()).as("%s displayName", d.scheme()).isNotBlank();
+			for (ChannelField f : d.fields()) {
+				assertThat(f.label()).as("%s.%s label", d.scheme(), f.key()).isNotBlank();
+				assertThat(f.description()).as("%s.%s description", d.scheme(), f.key()).isNotBlank();
+				if (f.secret()) {
+					// a secret field never advertises an example value
+					assertThat(f.example()).as("%s.%s example", d.scheme(), f.key()).isNull();
+				}
+			}
+		}
+		// the generic webhook has no provider docs link; a non-secret field has an
+		// example
+		assertThat(catalog.describe("webhook").orElseThrow().docsUrl()).isNull();
+		ChannelField chatId = slack.fields().stream().findFirst().orElseThrow(); // url
+																					// (secret)
+																					// ->
+																					// no
+																					// example
+		assertThat(chatId.example()).isNull();
+		assertThat(catalog.describe("telegram")
+			.orElseThrow()
+			.fields()
+			.stream()
+			.filter((f) -> f.key().equals("chatId"))
+			.findFirst()
+			.orElseThrow()
+			.example()).isNotBlank();
+	}
+
+	@Test
+	void buildUrlNormalisesPastedTransportOnUrlFields() {
+		// https:// pasted verbatim from the provider is stripped, and still round-trips
+		String https = catalog.buildUrl("slack", Map.of("url", "https://hooks.slack.com/services/T/B/xyz"));
+		assertThat(https).isEqualTo("slack://hooks.slack.com/services/T/B/xyz");
+		assertThatCode(() -> parser.parse(https)).doesNotThrowAnyException();
+		assertThat(catalog.parse(https).cleartextHttp()).isFalse();
+
+		// http:// flips to the documented +http (cleartext) transport
+		String http = catalog.buildUrl("webhook", Map.of("url", "http://internal.example/hook"));
+		assertThat(http).isEqualTo("webhook+http://internal.example/hook");
+		assertThat(catalog.parse(http).cleartextHttp()).isTrue();
+
+		// case-insensitive prefix; a bare host is left untouched
+		assertThat(catalog.buildUrl("slack", Map.of("url", "HTTPS://h/x"))).isEqualTo("slack://h/x");
+		assertThat(catalog.buildUrl("slack", Map.of("url", "h/x"))).isEqualTo("slack://h/x");
+	}
+
+	@Test
+	void recomposePreservesUntouchedSecretsAndCarriesTagsAndTransport() {
+		String original = catalog.buildUrl("telegram",
+				Map.of("host", "api.telegram.org", "token", "BOT-SECRET", "chatId", "42"));
+		ParsedChannel forEdit = catalog.parse(original);
+		assertThat(forEdit.values().get("token")).isEqualTo(ChannelCatalog.MASKED_SECRET);
+
+		// operator changes only chatId, leaves the masked token untouched -> secret kept
+		Map<String, String> edited = new java.util.LinkedHashMap<>(forEdit.values());
+		edited.put("chatId", "99");
+		assertThat(catalog.recompose(original, edited)).isEqualTo("telegram://api.telegram.org/BOT-SECRET/99");
+
+		// operator explicitly replaces the secret -> new value used
+		edited.put("token", "NEW-BOT");
+		assertThat(catalog.recompose(original, edited)).isEqualTo("telegram://api.telegram.org/NEW-BOT/99");
+
+		// null edits -> everything preserved verbatim
+		assertThat(catalog.recompose(original, null)).isEqualTo(original);
+
+		// tags + cleartext transport carried across an edit of a (secret) webhook url
+		String tagged = catalog.buildUrl("slack", Map.of("url", "h/x"), Set.of("ops"), true);
+		assertThat(catalog.recompose(tagged, catalog.parse(tagged).values())).isEqualTo("slack+http://h/x?tags=ops");
+
+		// an optional field absent in both prior and edits is simply omitted
+		String bsky = catalog.buildUrl("bluesky", Map.of("identifier", "alice", "appPassword", "pw"));
+		assertThat(catalog.recompose(bsky, null)).isEqualTo("bluesky://alice:pw");
+
+		assertThatThrownBy(() -> catalog.recompose("  ", Map.of())).isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	void buildUrlFromParsedChannelGuardsMaskedSecretsButRebuildsWhenReplaced() {
+		String original = catalog.buildUrl("pagerduty", Map.of("routingKey", "REAL-KEY"));
+		ParsedChannel masked = catalog.parse(original);
+		// the #78 footgun is guarded: a still-masked ParsedChannel throws, not corrupts
+		assertThatThrownBy(() -> catalog.buildUrl(masked)).isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("routingKey");
+
+		// with the secret replaced, the symmetric overload round-trips
+		ParsedChannel replaced = new ParsedChannel(masked.scheme(), Map.of("routingKey", "REAL-KEY"), masked.tags(),
+				masked.cleartextHttp());
+		assertThat(catalog.buildUrl(replaced)).isEqualTo(original);
+
+		// a non-secret channel round-trips straight from parse()
+		String ntfy = catalog.buildUrl("ntfy", Map.of("host", "ntfy.sh", "topic", "alerts"));
+		assertThat(catalog.buildUrl(catalog.parse(ntfy))).isEqualTo(ntfy);
+
+		assertThatThrownBy(() -> catalog.buildUrl((ParsedChannel) null)).isInstanceOf(IllegalArgumentException.class);
+	}
+
 	private static NotificationAdapter<String> adapter() {
 		return new NotificationAdapter<>() {
 			@Override

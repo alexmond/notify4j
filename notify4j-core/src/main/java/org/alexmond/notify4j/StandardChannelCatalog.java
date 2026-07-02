@@ -18,7 +18,8 @@ import org.alexmond.notify4j.internal.WhatsAppNotifier;
  * {@code assemble} (fields → URL remainder) and {@code disassemble} (remainder → fields)
  * that are inverses; a round-trip test pins them against the live parser so the catalog
  * cannot drift. The {@code +http}/{@code +https} transport and {@code ?tags=} are handled
- * here (never per-channel). Package-private; reached via
+ * here (never per-channel), and a {@code URL}-typed field is normalised so it can be
+ * pasted with or without its {@code http(s)://} prefix. Package-private; reached via
  * {@link ChannelCatalog#standard()}.
  */
 final class StandardChannelCatalog implements ChannelCatalog {
@@ -50,16 +51,40 @@ final class StandardChannelCatalog implements ChannelCatalog {
 	@Override
 	public String buildUrl(String scheme, Map<String, String> values, Set<String> tags, boolean cleartextHttp) {
 		Spec spec = spec(scheme);
-		String rest = spec.assemble().apply((values != null) ? values : Map.of());
-		StringBuilder url = new StringBuilder(spec.scheme());
-		if (cleartextHttp) {
-			url.append("+http");
+		boolean[] forceCleartext = { false };
+		Map<String, String> v = normalizeUrlFields(spec, (values != null) ? values : Map.of(), forceCleartext);
+		return assemble(spec, v, tags, cleartextHttp || forceCleartext[0]);
+	}
+
+	@Override
+	public String buildUrl(ParsedChannel channel) {
+		if (channel == null) {
+			throw new IllegalArgumentException("null channel");
 		}
-		url.append("://").append(rest);
-		if (tags != null && !tags.isEmpty()) {
-			url.append((rest.indexOf('?') >= 0) ? '&' : '?').append("tags=").append(String.join(",", tags));
+		Spec spec = spec(channel.scheme());
+		for (ChannelField f : spec.fields()) {
+			if (f.secret() && MASKED_SECRET.equals(channel.values().get(f.key()))) {
+				throw new IllegalArgumentException("secret field '" + f.key()
+						+ "' is still masked; use recompose(priorUrl, editedValues) to keep the existing secret");
+			}
 		}
-		return url.toString();
+		return buildUrl(channel.scheme(), channel.values(), channel.tags(), channel.cleartextHttp());
+	}
+
+	@Override
+	public String recompose(String priorUrl, Map<String, String> editedValues) {
+		Decomposed prior = decompose(priorUrl);
+		Map<String, String> edited = (editedValues != null) ? editedValues : Map.of();
+		Map<String, String> merged = new LinkedHashMap<>();
+		for (ChannelField f : prior.spec().fields()) {
+			String e = edited.get(f.key());
+			String kept = prior.raw().get(f.key());
+			String chosen = (e == null || (f.secret() && MASKED_SECRET.equals(e))) ? kept : e;
+			if (chosen != null) {
+				merged.put(f.key(), chosen);
+			}
+		}
+		return buildUrl(prior.scheme(), merged, prior.tags(), prior.cleartextHttp());
 	}
 
 	@Override
@@ -81,6 +106,65 @@ final class StandardChannelCatalog implements ChannelCatalog {
 
 	@Override
 	public ParsedChannel parse(String url) {
+		Decomposed d = decompose(url);
+		Map<String, String> out = new LinkedHashMap<>();
+		for (ChannelField f : d.spec().fields()) {
+			String value = d.raw().get(f.key());
+			if (value == null) {
+				continue; // absent optional field
+			}
+			out.put(f.key(), (f.secret() && !value.isEmpty()) ? MASKED_SECRET : value);
+		}
+		return new ParsedChannel(d.scheme(), out, d.tags(), d.cleartextHttp());
+	}
+
+	@Override
+	public String redact(String url) {
+		return AbstractHttpNotifier.redact(url);
+	}
+
+	// --- assembly / decomposition --------------------------------------------
+
+	private String assemble(Spec spec, Map<String, String> values, Set<String> tags, boolean cleartextHttp) {
+		String rest = spec.assemble().apply(values);
+		StringBuilder url = new StringBuilder(spec.scheme());
+		if (cleartextHttp) {
+			url.append("+http");
+		}
+		url.append("://").append(rest);
+		if (tags != null && !tags.isEmpty()) {
+			url.append((rest.indexOf('?') >= 0) ? '&' : '?').append("tags=").append(String.join(",", tags));
+		}
+		return url.toString();
+	}
+
+	/**
+	 * Strip a pasted transport from {@code URL}-typed fields so a provider webhook works
+	 * verbatim: {@code https://host/…} → {@code host/…}; {@code http://host/…} →
+	 * {@code host/…} and flags the {@code +http} transport via {@code forceCleartext}.
+	 */
+	private Map<String, String> normalizeUrlFields(Spec spec, Map<String, String> values, boolean[] forceCleartext) {
+		Map<String, String> out = new LinkedHashMap<>(values);
+		for (ChannelField f : spec.fields()) {
+			if (f.type() != FieldType.URL) {
+				continue;
+			}
+			String v = out.get(f.key());
+			if (v == null) {
+				continue;
+			}
+			if (v.regionMatches(true, 0, "https://", 0, 8)) {
+				out.put(f.key(), v.substring(8));
+			}
+			else if (v.regionMatches(true, 0, "http://", 0, 7)) {
+				out.put(f.key(), v.substring(7));
+				forceCleartext[0] = true;
+			}
+		}
+		return out;
+	}
+
+	private Decomposed decompose(String url) {
 		if (url == null || url.isBlank()) {
 			throw new IllegalArgumentException("blank notification url");
 		}
@@ -97,25 +181,9 @@ final class StandardChannelCatalog implements ChannelCatalog {
 			cleartextHttp = "http".equals(schemePart.substring(plus + 1));
 		}
 		Spec spec = spec(scheme);
-
 		Set<String> tags = new LinkedHashSet<>();
 		String rest = extractTags(url.substring(sep + 3), tags);
-
-		Map<String, String> raw = spec.disassemble().apply(rest);
-		Map<String, String> out = new LinkedHashMap<>();
-		for (ChannelField f : spec.fields()) {
-			String value = raw.get(f.key());
-			if (value == null) {
-				continue; // absent optional field
-			}
-			out.put(f.key(), (f.secret() && !value.isEmpty()) ? MASKED_SECRET : value);
-		}
-		return new ParsedChannel(scheme, out, tags, cleartextHttp);
-	}
-
-	@Override
-	public String redact(String url) {
-		return AbstractHttpNotifier.redact(url);
+		return new Decomposed(scheme, spec, spec.disassemble().apply(rest), tags, cleartextHttp);
 	}
 
 	private Spec spec(String scheme) {
@@ -130,76 +198,140 @@ final class StandardChannelCatalog implements ChannelCatalog {
 
 	private static Map<String, Spec> registry() {
 		Map<String, Spec> m = new LinkedHashMap<>();
-		// Webhook-family: the whole URL is the (secret) endpoint.
-		for (String scheme : List.of("slack", "teams", "discord", "mattermost", "rocketchat", "googlechat",
-				"webhook")) {
-			m.put(scheme, new Spec(scheme, List.of(field("url", FieldType.URL, true, true)), (v) -> g(v, "url"),
-					(rest) -> map("url", rest)));
-		}
-		m.put("telegram", new Spec("telegram",
-				List.of(field("host", FieldType.TEXT, true, false), field("token", FieldType.TEXT, true, true),
-						field("chatId", FieldType.TEXT, true, false)),
-				(v) -> g(v, "host") + "/" + g(v, "token") + "/" + g(v, "chatId"), StandardChannelCatalog::disTelegram));
-		m.put("ntfy",
-				new Spec("ntfy",
-						List.of(field("host", FieldType.TEXT, true, false),
-								field("topic", FieldType.TEXT, true, false)),
-						(v) -> g(v, "host") + "/" + g(v, "topic"), (rest) -> hostThen(rest, "topic")));
+		registerWebhooks(m);
+		registerInteractive(m);
+		registerMessaging(m);
+		registerSocialAndIncident(m);
+		return m;
+	}
+
+	private static void registerWebhooks(Map<String, Spec> m) {
+		webhook(m, "slack", "Slack", "https://api.slack.com/messaging/webhooks");
+		webhook(m, "teams", "Microsoft Teams",
+				"https://learn.microsoft.com/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook");
+		webhook(m, "discord", "Discord", "https://support.discord.com/hc/en-us/articles/228383668");
+		webhook(m, "mattermost", "Mattermost", "https://developers.mattermost.com/integrate/webhooks/incoming/");
+		webhook(m, "rocketchat", "Rocket.Chat", "https://docs.rocket.chat/docs/integrations");
+		webhook(m, "googlechat", "Google Chat", "https://developers.google.com/chat/how-tos/webhooks");
+		webhook(m, "webhook", "Webhook", null);
+	}
+
+	private static void registerInteractive(Map<String, Spec> m) {
+		m.put("telegram",
+				new Spec("telegram", "Telegram", "https://core.telegram.org/bots", List.of(
+						field("host", FieldType.TEXT, true, false, "API host", "Telegram Bot API host.",
+								"api.telegram.org"),
+						field("token", FieldType.TEXT, true, true, "Bot token", "Token issued by @BotFather.", null),
+						field("chatId", FieldType.TEXT, true, false, "Chat ID", "Target chat or channel id.",
+								"123456789")),
+						(v) -> g(v, "host") + "/" + g(v, "token") + "/" + g(v, "chatId"),
+						StandardChannelCatalog::disTelegram));
+		m.put("ntfy", new Spec("ntfy", "ntfy", "https://docs.ntfy.sh/",
+				List.of(field("host", FieldType.TEXT, true, false, "Server host", "ntfy server host.", "ntfy.sh"),
+						field("topic", FieldType.TEXT, true, false, "Topic", "Topic to publish to.", "alerts")),
+				(v) -> g(v, "host") + "/" + g(v, "topic"), (rest) -> hostThen(rest, "topic")));
 		m.put("gotify",
-				new Spec("gotify",
-						List.of(field("host", FieldType.TEXT, true, false),
-								field("appToken", FieldType.TEXT, true, true)),
+				new Spec("gotify", "Gotify", "https://gotify.net/docs/pushmsg", List.of(
+						field("host", FieldType.TEXT, true, false, "Server host", "Gotify server host.",
+								"gotify.example.com"),
+						field("appToken", FieldType.TEXT, true, true, "App token", "Gotify application token.", null)),
 						(v) -> g(v, "host") + "/" + g(v, "appToken"), (rest) -> hostThen(rest, "appToken")));
-		m.put("pushover", new Spec("pushover",
-				List.of(field("appToken", FieldType.TEXT, true, true), field("userKey", FieldType.TEXT, true, true)),
+		m.put("pushover", new Spec("pushover", "Pushover", "https://pushover.net/api",
+				List.of(field("appToken", FieldType.TEXT, true, true, "Application token",
+						"Pushover application token.", null),
+						field("userKey", FieldType.TEXT, true, true, "User key", "Pushover user or group key.", null)),
 				(v) -> g(v, "appToken") + "/" + g(v, "userKey"), (rest) -> two(rest, "/", "appToken", "userKey")));
-		m.put("twilio", new Spec("twilio",
-				List.of(field("sid", FieldType.TEXT, true, false), field("authToken", FieldType.TEXT, true, true),
-						field("from", FieldType.TEXT, true, false), field("to", FieldType.TEXT, true, false)),
+	}
+
+	private static void registerMessaging(Map<String, Spec> m) {
+		m.put("twilio", new Spec("twilio", "Twilio SMS", "https://www.twilio.com/docs/sms", List.of(
+				field("sid", FieldType.TEXT, true, false, "Account SID", "Twilio account SID.", "ACxxxxxxxx"),
+				field("authToken", FieldType.TEXT, true, true, "Auth token", "Twilio auth token.", null),
+				field("from", FieldType.TEXT, true, false, "From number", "Sending number (E.164).", "+15551234567"),
+				field("to", FieldType.TEXT, true, false, "To number", "Recipient number (E.164).", "+15557654321")),
 				(v) -> g(v, "sid") + ":" + g(v, "authToken") + "@" + g(v, "from") + "/" + g(v, "to"),
 				StandardChannelCatalog::disTwilio));
-		m.put("signal", new Spec("signal",
-				List.of(field("host", FieldType.TEXT, true, false), field("from", FieldType.TEXT, true, false),
-						field("to", FieldType.TEXT, true, false)),
+		m.put("signal", new Spec("signal", "Signal", "https://github.com/bbernhard/signal-cli-rest-api", List.of(
+				field("host", FieldType.TEXT, true, false, "REST host", "signal-cli-rest-api host.",
+						"signal.example.com"),
+				field("from", FieldType.TEXT, true, false, "From number", "Registered sender (E.164).", "+15551234567"),
+				field("to", FieldType.TEXT, true, false, "To number", "Recipient number (E.164).", "+15557654321")),
 				(v) -> g(v, "host") + "/" + g(v, "from") + "/" + g(v, "to"), StandardChannelCatalog::disSignal));
-		m.put("whatsapp", new Spec("whatsapp",
-				List.of(field("token", FieldType.TEXT, true, true), field("phoneId", FieldType.TEXT, true, false),
-						field("to", FieldType.TEXT, true, false), field("version", FieldType.TEXT, false, false)),
-				StandardChannelCatalog::asmWhatsapp, StandardChannelCatalog::disWhatsapp));
-		m.put("zulip",
-				new Spec("zulip", List.of(field("botEmail", FieldType.TEXT, true, false),
-						field("apiKey", FieldType.TEXT, true, true), field("host", FieldType.TEXT, true, false),
-						field("stream", FieldType.TEXT, true, false), field("topic", FieldType.TEXT, true, false)),
-						(v) -> g(v, "botEmail") + ":" + g(v, "apiKey") + "@" + g(v, "host") + "/" + g(v, "stream") + "/"
-								+ g(v, "topic"),
-						StandardChannelCatalog::disZulip));
-		m.put("matrix", new Spec("matrix",
-				List.of(field("token", FieldType.TEXT, true, true), field("host", FieldType.TEXT, true, false),
-						field("roomId", FieldType.TEXT, true, false)),
+		m.put("whatsapp",
+				new Spec("whatsapp", "WhatsApp", "https://developers.facebook.com/docs/whatsapp/cloud-api",
+						List.of(field("token", FieldType.TEXT, true, true, "Access token",
+								"WhatsApp Cloud API access token.", null),
+								field("phoneId", FieldType.TEXT, true, false, "Phone number ID",
+										"WhatsApp Cloud API phone number id.", "1234567890"),
+								field("to", FieldType.TEXT, true, false, "To number", "Recipient number (E.164).",
+										"+15557654321"),
+								field("version", FieldType.TEXT, false, false, "Graph API version",
+										"Graph API version override (default " + WhatsAppNotifier.API_VERSION + ").",
+										WhatsAppNotifier.API_VERSION)),
+						StandardChannelCatalog::asmWhatsapp, StandardChannelCatalog::disWhatsapp));
+		m.put("zulip", new Spec("zulip", "Zulip", "https://zulip.com/api/send-message",
+				List.of(field("botEmail", FieldType.TEXT, true, false, "Bot email", "Zulip bot email address.",
+						"bot@zulip.example.com"),
+						field("apiKey", FieldType.TEXT, true, true, "API key", "Zulip bot API key.", null),
+						field("host", FieldType.TEXT, true, false, "Server host", "Zulip server host.",
+								"zulip.example.com"),
+						field("stream", FieldType.TEXT, true, false, "Stream", "Target stream name.", "alerts"),
+						field("topic", FieldType.TEXT, true, false, "Topic", "Topic within the stream.", "notify4j")),
+				(v) -> g(v, "botEmail") + ":" + g(v, "apiKey") + "@" + g(v, "host") + "/" + g(v, "stream") + "/"
+						+ g(v, "topic"),
+				StandardChannelCatalog::disZulip));
+	}
+
+	private static void registerSocialAndIncident(Map<String, Spec> m) {
+		m.put("matrix", new Spec("matrix", "Matrix", "https://matrix.org/docs/", List.of(
+				field("token", FieldType.TEXT, true, true, "Access token", "Matrix access token.", null),
+				field("host", FieldType.TEXT, true, false, "Homeserver host", "Matrix homeserver host.", "matrix.org"),
+				field("roomId", FieldType.TEXT, true, false, "Room ID", "Target room id.", "!abc123:matrix.org")),
 				(v) -> g(v, "token") + "@" + g(v, "host") + "/" + g(v, "roomId"), StandardChannelCatalog::disMatrix));
-		m.put("mastodon",
-				new Spec("mastodon",
-						List.of(field("token", FieldType.TEXT, true, true), field("host", FieldType.TEXT, true, false)),
-						(v) -> g(v, "token") + "@" + g(v, "host"), (rest) -> two(rest, "@", "token", "host")));
+		m.put("mastodon", new Spec("mastodon", "Mastodon", "https://docs.joinmastodon.org/client/token/", List.of(
+				field("token", FieldType.TEXT, true, true, "Access token", "Mastodon application access token.", null),
+				field("host", FieldType.TEXT, true, false, "Instance host", "Mastodon instance host.",
+						"mastodon.social")),
+				(v) -> g(v, "token") + "@" + g(v, "host"), (rest) -> two(rest, "@", "token", "host")));
 		m.put("bluesky",
-				new Spec("bluesky", List.of(field("identifier", FieldType.TEXT, true, false),
-						field("appPassword", FieldType.TEXT, true, true), field("host", FieldType.TEXT, false, false)),
+				new Spec("bluesky", "Bluesky", "https://atproto.com",
+						List.of(field("identifier", FieldType.TEXT, true, false, "Handle or DID",
+								"Bluesky handle or DID.", "alice.bsky.social"),
+								field("appPassword", FieldType.TEXT, true, true, "App password",
+										"Bluesky app password (not the account password).", null),
+								field("host", FieldType.TEXT, false, false, "PDS host",
+										"Personal Data Server host (default bsky.social).", "bsky.social")),
 						StandardChannelCatalog::asmBluesky, StandardChannelCatalog::disBluesky));
-		m.put("pagerduty", credentialOnly("pagerduty", "routingKey"));
-		m.put("opsgenie", credentialOnly("opsgenie", "apiKey"));
-		m.put("pushbullet", credentialOnly("pushbullet", "accessToken"));
-		return m;
+		m.put("pagerduty",
+				credentialOnly("pagerduty", "PagerDuty", "https://developer.pagerduty.com/docs/events-api-v2/overview/",
+						"routingKey", "Routing key", "Events API v2 integration routing key."));
+		m.put("opsgenie",
+				credentialOnly("opsgenie", "Opsgenie", "https://support.atlassian.com/opsgenie/docs/api-integration/",
+						"apiKey", "API key", "Opsgenie API integration key."));
+		m.put("pushbullet", credentialOnly("pushbullet", "Pushbullet", "https://docs.pushbullet.com/", "accessToken",
+				"Access token", "Pushbullet access token."));
+	}
+
+	/** Webhook-family scheme: the whole URL is the (secret) endpoint. */
+	private static void webhook(Map<String, Spec> m, String scheme, String displayName, String docsUrl) {
+		m.put(scheme,
+				new Spec(scheme, displayName, docsUrl,
+						List.of(field("url", FieldType.URL, true, true, "Webhook URL",
+								"Incoming webhook URL issued by " + displayName + ".", null)),
+						(v) -> g(v, "url"), (rest) -> map("url", rest)));
 	}
 
 	/**
 	 * A credential-only scheme ({@code scheme://<secret>}); the default host is elided.
 	 */
-	private static Spec credentialOnly(String scheme, String key) {
-		return new Spec(scheme, List.of(field(key, FieldType.TEXT, true, true)), (v) -> g(v, key), (rest) -> {
-			URI u = URI.create("https://" + rest);
-			String cred = (u.getUserInfo() != null) ? u.getUserInfo() : u.getHost();
-			return map(key, (cred != null) ? cred : rest);
-		});
+	private static Spec credentialOnly(String scheme, String displayName, String docsUrl, String key, String label,
+			String description) {
+		return new Spec(scheme, displayName, docsUrl,
+				List.of(field(key, FieldType.TEXT, true, true, label, description, null)), (v) -> g(v, key), (rest) -> {
+					URI u = URI.create("https://" + rest);
+					String cred = (u.getUserInfo() != null) ? u.getUserInfo() : u.getHost();
+					return map(key, (cred != null) ? cred : rest);
+				});
 	}
 
 	// --- per-channel disassemble helpers (mirror NotifierUrlParser) -----------
@@ -290,8 +422,9 @@ final class StandardChannelCatalog implements ChannelCatalog {
 
 	// --- small utilities -----------------------------------------------------
 
-	private static ChannelField field(String key, FieldType type, boolean required, boolean secret) {
-		return new ChannelField(key, type, required, secret);
+	private static ChannelField field(String key, FieldType type, boolean required, boolean secret, String label,
+			String description, String example) {
+		return new ChannelField(key, type, required, secret, label, description, example);
 	}
 
 	private static String g(Map<String, String> values, String key) {
@@ -366,16 +499,21 @@ final class StandardChannelCatalog implements ChannelCatalog {
 		return (q < 0) ? rest : rest.substring(0, q);
 	}
 
-	/** One channel's fields plus the inverse assemble/disassemble pair. */
-	private record Spec(String scheme, List<ChannelField> fields, Function<Map<String, String>, String> assemble,
-			Function<String, Map<String, String>> disassemble) {
+	/** A decomposed URL with its scheme, spec, raw (unmasked) fields, tags, transport. */
+	private record Decomposed(String scheme, Spec spec, Map<String, String> raw, Set<String> tags,
+			boolean cleartextHttp) {
+	}
+
+	/** One channel's metadata plus the inverse assemble/disassemble pair. */
+	private record Spec(String scheme, String displayName, String docsUrl, List<ChannelField> fields,
+			Function<Map<String, String>, String> assemble, Function<String, Map<String, String>> disassemble) {
 
 		boolean credentialBearing() {
 			return fields.stream().anyMatch(ChannelField::secret);
 		}
 
 		ChannelDescriptor descriptor() {
-			return new ChannelDescriptor(scheme, fields, credentialBearing());
+			return new ChannelDescriptor(scheme, displayName, fields, credentialBearing(), docsUrl);
 		}
 	}
 

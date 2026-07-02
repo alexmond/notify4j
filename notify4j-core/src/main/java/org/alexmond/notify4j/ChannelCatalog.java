@@ -15,8 +15,11 @@ import java.util.Set;
  * notify4j owns URL assembly end-to-end: {@link #buildUrl} produces a URL the
  * {@code NotifierUrlParser} accepts (separators, default hosts, the {@code +http}/
  * {@code +https} transport, and {@code ?tags=} are all handled here — callers never
- * concatenate). {@link #parse} is the inverse for edit screens, returning secrets
- * {@link #MASKED_SECRET masked}. Obtain the built-in instance via {@link #standard()}.
+ * concatenate; a {@code URL}-typed field may be pasted with or without its
+ * {@code http(s)://} prefix). {@link #parse} is the inverse for edit screens, returning
+ * secrets {@link #MASKED_SECRET masked}; {@link #recompose} rebuilds an edited channel
+ * while preserving any secret the operator left untouched. Obtain the built-in instance
+ * via {@link #standard()}.
  *
  * @since 1.1.0
  */
@@ -51,6 +54,36 @@ public interface ChannelCatalog {
 	 * channels)
 	 */
 	String buildUrl(String scheme, Map<String, String> values, Set<String> tags, boolean cleartextHttp);
+
+	/**
+	 * Rebuild the URL for a {@link #parse parsed} channel — the symmetric inverse of
+	 * {@link #parse}, carrying its scheme, values, tags and transport in one argument.
+	 * <p>
+	 * Because {@code parse} masks secrets, this overload <strong>rejects</strong> any
+	 * value still equal to {@link #MASKED_SECRET} (it would otherwise write the mask as
+	 * the credential). To recompose an edited channel while keeping a secret the operator
+	 * did not touch, use {@link #recompose} instead.
+	 * @param channel a channel whose secret values have all been replaced with real
+	 * values
+	 * @throws IllegalArgumentException if the scheme is unknown or a secret is still
+	 * masked
+	 */
+	String buildUrl(ParsedChannel channel);
+
+	/**
+	 * Recompose an edited channel URL, <strong>preserving secrets the operator left
+	 * untouched</strong> — the safe counterpart to {@link #parse} for an "edit channel"
+	 * screen. Fields present in {@code editedValues} override the original; any field
+	 * left as {@link #MASKED_SECRET} (or omitted) keeps its value from {@code priorUrl}.
+	 * Tags and the {@code +http}/{@code +https} transport are carried over from
+	 * {@code priorUrl}. The real secret never round-trips through the UI.
+	 * <p>
+	 * <strong>Secret-bearing</strong> result — never log it.
+	 * @param priorUrl the existing channel URL being edited
+	 * @param editedValues field key → new value; masked/omitted secrets are kept
+	 * @throws IllegalArgumentException if {@code priorUrl} is blank or its scheme unknown
+	 */
+	String recompose(String priorUrl, Map<String, String> editedValues);
 
 	/**
 	 * Check {@code values} against the channel's required fields. Empty list = valid.
