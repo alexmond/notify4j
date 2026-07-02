@@ -1,6 +1,6 @@
 = Changelog
 
-== Unreleased
+== 1.1.0 (2026-07-02)
 
 * Security fix: `redact()` (and the public `ChannelCatalog.redact()`) no longer leaks the
   secret for credential-in-authority schemes (`pagerduty://<key>`, `opsgenie://`,
