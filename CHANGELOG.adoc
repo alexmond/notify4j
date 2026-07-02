@@ -2,6 +2,13 @@
 
 == Unreleased
 
+* One-shot imperative send: `Notifications.sendOnce(urls, Message)` delivers a single ad-hoc
+  notification without defining an event type or a `NotificationAdapter` — for a pipeline
+  "notify step" or an "alert now" caller. A built-in `Message` value carries `title`, `body`,
+  and `severity`; delivery is synchronous (returns only after every channel is attempted, so a
+  short-lived process won't exit mid-send), always fires (a one-shot has no transition to
+  suppress), and never throws — a failing channel is tallied in the returned
+  `SendResult(attempted, sent, failed)`. A 3-arg overload tunes HTTP timeouts/retry.
 * New channels: Matrix (`matrix://<access-token>@<homeserver>/<room-id>`, Client-Server API),
   Mastodon (`mastodon://<access-token>@<instance-host>`), and Bluesky
   (`bluesky://<identifier>:<app-password>[@<pds-host>]`, AT Protocol — creates a session then

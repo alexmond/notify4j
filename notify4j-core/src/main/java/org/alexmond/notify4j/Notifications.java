@@ -2,9 +2,11 @@ package org.alexmond.notify4j;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.alexmond.notify4j.NotifierUrlParser.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +29,11 @@ import org.slf4j.LoggerFactory;
  * {@link AutoCloseable}: {@link #close()} closes any channel that holds resources (e.g. a
  * {@link RemindingNotifier}); the config's {@link NotificationsConfig#executor()
  * executor} is caller-owned and is not shut down by the facade.
+ * </p>
+ *
+ * <p>
+ * For a single ad-hoc notification with no event type or adapter (a pipeline "notify
+ * step", an "alert now" caller), use the static {@link #sendOnce(List, Message)}.
  * </p>
  *
  * @param <E> the application's event type
@@ -100,6 +107,51 @@ public class Notifications<E> implements AutoCloseable {
 		this.reminder = buildReminder(adapter, config);
 		log.info("notifications: {} channel(s) configured ({} delivery{})", channels.size(),
 				(this.executor != null) ? "async" : "sync", (this.reminder != null) ? ", reminders on" : "");
+	}
+
+	// --- one-shot imperative send --------------------------------------------
+
+	/**
+	 * Deliver a one-off {@link Message} to {@code urls} and return the per-channel tally
+	 * — no event type, adapter, or {@code close()} required. Construct, send, and close
+	 * all happen in this one call. Delivery is <strong>synchronous</strong> (it returns
+	 * only after every channel has been attempted, so a short-lived process won't exit
+	 * mid-send), the message always fires (a one-shot has no transition to suppress), and
+	 * a failing channel is counted, never thrown. Uses
+	 * {@link HttpClientConfig#defaults()} (10s timeouts, no retry).
+	 * @param urls channel URLs (see {@link NotifierUrlParser});
+	 * <strong>secret-bearing</strong> — never log them
+	 * @param message the message to send
+	 * @return the delivery tally ({@code attempted == sent + failed})
+	 * @since 1.1.0
+	 */
+	public static SendResult sendOnce(List<String> urls, Message message) {
+		return sendOnce(urls, message, HttpClientConfig.defaults());
+	}
+
+	/**
+	 * {@link #sendOnce(List, Message)} with tuned HTTP timeouts/retry. Delivery is forced
+	 * synchronous regardless of {@code http}'s retry mode — a one-shot must complete
+	 * before it returns — so a config built for asynchronous use is coerced to blocking
+	 * retry.
+	 * @param urls channel URLs; <strong>secret-bearing</strong> — never log them
+	 * @param message the message to send
+	 * @param http HTTP timeouts + retry policy (coerced to blocking)
+	 * @return the delivery tally
+	 * @since 1.1.0
+	 */
+	public static SendResult sendOnce(List<String> urls, Message message, HttpClientConfig http) {
+		Objects.requireNonNull(message, "message");
+		HttpClientConfig h = (http != null) ? http : HttpClientConfig.defaults();
+		if (h.nonBlockingRetry()) {
+			h = new HttpClientConfig(h.client(), h.requestTimeout(), h.maxAttempts(), h.retryBackoff(), false);
+		}
+		CountingMetrics counter = new CountingMetrics();
+		NotificationsConfig config = NotificationsConfig.builder().includeLog(false).http(h).metrics(counter).build();
+		try (Notifications<Message> notifications = new Notifications<>(urls, MessageAdapter.INSTANCE, config)) {
+			notifications.send(message);
+		}
+		return counter.result();
 	}
 
 	/**
@@ -247,6 +299,74 @@ public class Notifications<E> implements AutoCloseable {
 	/** Number of configured channels (including the log sink and any extras). */
 	public int channelCount() {
 		return channels.size();
+	}
+
+	/**
+	 * The built-in adapter for the {@link #sendOnce one-shot} path. Maps a
+	 * {@link Message} onto the channel fields; {@code id} is {@code null} so every
+	 * message is delivered unconditionally — a null id bypasses each channel's transition
+	 * filter and stores no state, so even a repeated send is never suppressed.
+	 * Package-private on purpose: callers reach it only through {@code sendOnce}.
+	 */
+	static final class MessageAdapter implements NotificationAdapter<Message> {
+
+		static final MessageAdapter INSTANCE = new MessageAdapter();
+
+		@Override
+		public Object id(Message event) {
+			return null; // no identity: a one-shot always fires
+		}
+
+		@Override
+		public String status(Message event) {
+			return "ALERT";
+		}
+
+		@Override
+		public String message(Message event) {
+			return event.body();
+		}
+
+		@Override
+		public String title(Message event) {
+			return event.title();
+		}
+
+		@Override
+		public Severity severity(Message event) {
+			return event.severity();
+		}
+
+	}
+
+	/** Tallies per-channel delivery outcomes for a synchronous {@link #sendOnce}. */
+	private static final class CountingMetrics implements NotificationMetrics {
+
+		private final AtomicInteger sent = new AtomicInteger();
+
+		private final AtomicInteger failed = new AtomicInteger();
+
+		@Override
+		public void recordSent(String channel) {
+			this.sent.incrementAndGet();
+		}
+
+		@Override
+		public void recordFailed(String channel) {
+			this.failed.incrementAndGet();
+		}
+
+		@Override
+		public void recordSuppressed(String channel) {
+			// a one-shot (null id) is never suppressed
+		}
+
+		SendResult result() {
+			int s = this.sent.get();
+			int f = this.failed.get();
+			return new SendResult(s + f, s, f);
+		}
+
 	}
 
 }
