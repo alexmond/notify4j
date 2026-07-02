@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.alexmond</groupId>
         <artifactId>notify4j-parent</artifactId>
-        <version>1.0.1-SNAPSHOT</version>
+        <version>1.1.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>notify4j-spring-boot-starter</artifactId>
