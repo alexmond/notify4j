@@ -103,11 +103,13 @@ public class NotifierUrlParser<E> {
 	private static final Logger log = LoggerFactory.getLogger(NotifierUrlParser.class);
 
 	/**
-	 * Schemes whose URL embeds a secret (token / key / SID); used to warn when they are
-	 * configured over cleartext {@code +http}, which would put that secret on the wire
-	 * unencrypted.
+	 * Schemes whose URL embeds a secret (token / key / SID). Used to warn when they are
+	 * configured over cleartext {@code +http}, and by {@link AbstractHttpNotifier#redact}
+	 * to mask the authority — for these the secret can sit in the host position (e.g.
+	 * {@code pagerduty://<key>}). Package-visible so the redactor shares this one source
+	 * of truth.
 	 */
-	private static final Set<String> CREDENTIAL_SCHEMES = Set.of("telegram", "gotify", "pushover", "twilio", "whatsapp",
+	static final Set<String> CREDENTIAL_SCHEMES = Set.of("telegram", "gotify", "pushover", "twilio", "whatsapp",
 			"zulip", "pagerduty", "opsgenie", "pushbullet", "matrix", "mastodon", "bluesky");
 
 	private final Function<E, Object> idFn;

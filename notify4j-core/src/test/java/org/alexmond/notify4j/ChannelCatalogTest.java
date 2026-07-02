@@ -158,6 +158,9 @@ class ChannelCatalogTest {
 	@Test
 	void redactMasksSecrets() {
 		assertThat(catalog.redact("telegram://api.telegram.org/BOT-SECRET/42")).doesNotContain("BOT-SECRET");
+		// credential-in-authority schemes: the secret is the host, must not be reflected
+		assertThat(catalog.redact("pagerduty://RK-SECRET")).isEqualTo("pagerduty://…").doesNotContain("RK-SECRET");
+		assertThat(catalog.redact("pushover://APP-SECRET/USER-SECRET")).doesNotContain("APP-SECRET");
 	}
 
 	@Test
