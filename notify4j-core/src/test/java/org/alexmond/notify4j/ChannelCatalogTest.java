@@ -232,6 +232,11 @@ class ChannelCatalogTest {
 		// the generic webhook has no provider docs link; a non-secret field has an
 		// example
 		assertThat(catalog.describe("webhook").orElseThrow().docsUrl()).isNull();
+		// the generic webhook's field copy names no provider (not "…issued by Webhook")
+		assertThat(catalog.describe("webhook").orElseThrow().fields().get(0).description()).doesNotContain("issued by")
+			.contains("JSON POST");
+		assertThat(catalog.describe("slack").orElseThrow().fields().get(0).description())
+			.isEqualTo("Incoming webhook URL issued by Slack.");
 		ChannelField chatId = slack.fields().stream().findFirst().orElseThrow(); // url
 																					// (secret)
 																					// ->

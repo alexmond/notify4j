@@ -353,10 +353,12 @@ final class StandardChannelCatalog implements ChannelCatalog {
 
 	/** Webhook-family scheme: the whole URL is the (secret) endpoint. */
 	private static void webhook(Map<String, Spec> m, String scheme, String displayName, String docsUrl) {
+		// the generic "webhook" channel names no provider, so avoid "…issued by Webhook"
+		String description = "webhook".equals(scheme) ? "Incoming webhook URL (any service that accepts a JSON POST)."
+				: "Incoming webhook URL issued by " + displayName + ".";
 		m.put(scheme,
 				new Spec(scheme, displayName, docsUrl,
-						List.of(field("url", FieldType.URL, true, true, "Webhook URL",
-								"Incoming webhook URL issued by " + displayName + ".", null)),
+						List.of(field("url", FieldType.URL, true, true, "Webhook URL", description, null)),
 						(v) -> g(v, "url"), (rest) -> map("url", rest)));
 	}
 
