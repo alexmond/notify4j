@@ -7,6 +7,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -318,6 +319,18 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 	static String redact(String url) {
 		if (url == null) {
 			return "<none>";
+		}
+		int sep = url.indexOf("://");
+		if (sep >= 0) {
+			String schemePart = url.substring(0, sep);
+			int plus = schemePart.indexOf('+');
+			String base = ((plus >= 0) ? schemePart.substring(0, plus) : schemePart).toLowerCase(Locale.ROOT);
+			// Schemes whose authority IS the credential (pagerduty://<key>,
+			// pushover://<app-token>/…): the secret parses as the URI host, so reflecting
+			// the authority would leak it — mask to the scheme-only form.
+			if (NotifierUrlParser.CREDENTIAL_SCHEMES.contains(base)) {
+				return schemePart + "://…";
+			}
 		}
 		try {
 			URI u = URI.create(url);

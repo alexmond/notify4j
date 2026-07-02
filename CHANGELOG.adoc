@@ -2,6 +2,10 @@
 
 == Unreleased
 
+* Security fix: `redact()` (and the public `ChannelCatalog.redact()`) no longer leaks the
+  secret for credential-in-authority schemes (`pagerduty://<key>`, `opsgenie://`,
+  `pushbullet://`, `pushover://<app-token>/…`) — the credential parses as the URI host and
+  was reflected verbatim. It is now masked to the scheme-only `scheme://…` form.
 * One-shot imperative send: `Notifications.sendOnce(urls, Message)` delivers a single ad-hoc
   notification without defining an event type or a `NotificationAdapter` — for a pipeline
   "notify step" or an "alert now" caller. A built-in `Message` value carries `title`, `body`,

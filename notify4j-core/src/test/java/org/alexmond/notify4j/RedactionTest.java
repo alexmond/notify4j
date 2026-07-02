@@ -26,6 +26,21 @@ class RedactionTest {
 	}
 
 	@Test
+	void masksAuthorityForCredentialInAuthoritySchemes() {
+		// the secret sits in the authority (parses as the URI host) — must not be
+		// reflected
+		assertThat(AbstractHttpNotifier.redact("pagerduty://R0123456789ABCDEF")).isEqualTo("pagerduty://…");
+		assertThat(AbstractHttpNotifier.redact("opsgenie://api-key-uuid")).isEqualTo("opsgenie://…");
+		assertThat(AbstractHttpNotifier.redact("pushbullet://o.TOKEN")).isEqualTo("pushbullet://…");
+		assertThat(AbstractHttpNotifier.redact("pushover://APPTOKEN/USERKEY")).isEqualTo("pushover://…");
+		// the +http transport signal is kept, but the secret is still masked
+		assertThat(AbstractHttpNotifier.redact("pagerduty+http://R0123456789ABCDEF")).isEqualTo("pagerduty+http://…");
+		// a credential scheme whose host is actually public is over-masked (safe for a
+		// redactor)
+		assertThat(AbstractHttpNotifier.redact("telegram://api.telegram.org/BOT-SECRET/42")).isEqualTo("telegram://…");
+	}
+
+	@Test
 	void handlesNullAndMalformed() {
 		assertThat(AbstractHttpNotifier.redact(null)).isEqualTo("<none>");
 		assertThat(AbstractHttpNotifier.redact("not a url")).isEqualTo("<redacted>");
