@@ -99,6 +99,14 @@ public interface ChannelCatalog {
 	ParsedChannel parse(String url);
 
 	/**
+	 * Non-throwing {@link #parse}: returns the decomposed channel, or empty if
+	 * {@code url} is blank, has no scheme, or names an unknown channel. Consistent with
+	 * {@link #describe}'s {@link Optional} for callers decomposing stored/user-supplied
+	 * URLs without a try/catch.
+	 */
+	Optional<ParsedChannel> tryParse(String url);
+
+	/**
 	 * Redact a channel URL to a safe {@code scheme://host/…} form for display/logging,
 	 * using the same redactor the delivery path uses.
 	 */

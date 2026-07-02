@@ -19,8 +19,10 @@
   (`https://` is stripped, `http://` selects the `+http` transport). Editing is closed by
   `recompose(priorUrl, editedValues)`, which preserves any secret the operator left masked,
   and by a symmetric `buildUrl(ParsedChannel)` (which refuses a still-masked secret rather
-  than corrupting it). notify4j owns URL assembly, so `buildUrl` output round-trips through
-  the parser (pinned by a per-scheme test).
+  than corrupting it). `validate()` additionally light-checks the format of `URL`-typed
+  fields, and `tryParse()` is a non-throwing `Optional` variant of `parse()`. notify4j owns
+  URL assembly, so `buildUrl` output round-trips through the parser (pinned by a per-scheme
+  test).
 
 == 1.0.0 (2026-06-28)
 

@@ -97,11 +97,50 @@ final class StandardChannelCatalog implements ChannelCatalog {
 		List<ChannelValidationError> errors = new ArrayList<>();
 		for (ChannelField f : spec.fields()) {
 			String value = v.get(f.key());
-			if (f.required() && (value == null || value.isBlank())) {
-				errors.add(new ChannelValidationError(f.key(), "required", f.key() + " is required"));
+			if (value == null || value.isBlank()) {
+				if (f.required()) {
+					errors.add(new ChannelValidationError(f.key(), "required", f.key() + " is required"));
+				}
+			}
+			else if (f.type() == FieldType.URL && !looksLikeUrl(value)) {
+				errors.add(new ChannelValidationError(f.key(), "invalid_url", f.key() + " is not a valid URL"));
 			}
 		}
 		return List.copyOf(errors);
+	}
+
+	/**
+	 * A light format check for a {@code URL}-typed field: a pasted transport is allowed
+	 * (it is normalised on assembly), but the remainder must be a whitespace-free
+	 * authority with a host — enough for a UI's "valid" to mean more than "non-empty".
+	 */
+	private static boolean looksLikeUrl(String value) {
+		String v = value;
+		if (v.regionMatches(true, 0, "https://", 0, 8)) {
+			v = v.substring(8);
+		}
+		else if (v.regionMatches(true, 0, "http://", 0, 7)) {
+			v = v.substring(7);
+		}
+		if (v.isBlank() || v.chars().anyMatch(Character::isWhitespace)) {
+			return false;
+		}
+		try {
+			return URI.create("https://" + v).getHost() != null;
+		}
+		catch (IllegalArgumentException ex) {
+			return false;
+		}
+	}
+
+	@Override
+	public Optional<ParsedChannel> tryParse(String url) {
+		try {
+			return Optional.of(parse(url));
+		}
+		catch (IllegalArgumentException ex) {
+			return Optional.empty();
+		}
 	}
 
 	@Override

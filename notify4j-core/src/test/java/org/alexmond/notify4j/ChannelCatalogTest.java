@@ -313,6 +313,36 @@ class ChannelCatalogTest {
 		assertThatThrownBy(() -> catalog.buildUrl((ParsedChannel) null)).isInstanceOf(IllegalArgumentException.class);
 	}
 
+	@Test
+	void validateChecksUrlFieldFormat() {
+		// a clearly-malformed URL is rejected by key, without leaking the value
+		List<ChannelValidationError> errors = catalog.validate("webhook", Map.of("url", "this is not a url"));
+		assertThat(errors).singleElement().satisfies((e) -> {
+			assertThat(e.fieldKey()).isEqualTo("url");
+			assertThat(e.code()).isEqualTo("invalid_url");
+			assertThat(e.message()).doesNotContain("this is not a url");
+		});
+		// a bare host and a pasted-transport URL are both accepted (transport is
+		// normalised)
+		assertThat(catalog.validate("webhook", Map.of("url", "hooks.example.com/x"))).isEmpty();
+		assertThat(catalog.validate("slack", Map.of("url", "https://hooks.slack.com/services/T/B/xyz"))).isEmpty();
+		assertThat(catalog.validate("webhook", Map.of("url", "http://internal.example/hook"))).isEmpty();
+		// a missing required URL still reports "required", not "invalid_url"
+		assertThat(catalog.validate("webhook", Map.of())).singleElement()
+			.satisfies((e) -> assertThat(e.code()).isEqualTo("required"));
+	}
+
+	@Test
+	void tryParseIsNonThrowing() {
+		assertThat(catalog.tryParse("telegram://api.telegram.org/BOT/42")).isPresent()
+			.get()
+			.satisfies((p) -> assertThat(p.scheme()).isEqualTo("telegram"));
+		assertThat(catalog.tryParse("  ")).isEmpty();
+		assertThat(catalog.tryParse("no-scheme-here")).isEmpty();
+		assertThat(catalog.tryParse("bogus://x")).isEmpty();
+		assertThat(catalog.tryParse(null)).isEmpty();
+	}
+
 	private static NotificationAdapter<String> adapter() {
 		return new NotificationAdapter<>() {
 			@Override
