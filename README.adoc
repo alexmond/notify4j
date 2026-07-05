@@ -49,7 +49,7 @@ notify4j:
 
 The starter auto-configures a `Notifications` facade you inject and call: `notifications.send(event)`.
 See the link:notify4j-sample[`notify4j-sample`] module and the
-https://www.alexmond.org/notify4j/current/index.html[reference docs] for a full walkthrough.
+https://www.alexmond.org/notify4j/current/[reference docs] for a full walkthrough.
 
 API reference (javadoc.io):
 https://javadoc.io/doc/org.alexmond/notify4j-core/latest/index.html[notify4j-core] ·
