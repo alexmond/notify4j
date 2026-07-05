@@ -1,5 +1,15 @@
 = Changelog
 
+== 1.1.1 (unreleased)
+
+* *Fix (Matrix):* the Matrix channel now sends `PUT .../rooms/{roomId}/send/m.room.message/{txnId}`
+  per the Client-Server API spec instead of a non-spec, transaction-id-less `POST`. The old form
+  worked only against Synapse (which tolerates it); spec-compliant homeservers (Conduit, Dendrite)
+  returned 404, so delivery silently failed. The transaction id is generated once per delivery and
+  reused across retries, so it acts as Matrix's idempotency key (a fresh id per retry would
+  double-post). `AbstractHttpNotifier` gains overridable `httpMethod()` and `requestUrl(event)`
+  hooks (defaulting to `POST` + the fixed URL, so every other channel is unchanged). (#94)
+
 == 1.1.0 (2026-07-02)
 
 * Security fix: `redact()` (and the public `ChannelCatalog.redact()`) no longer leaks the

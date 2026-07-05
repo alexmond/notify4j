@@ -45,6 +45,8 @@ class ChannelPayloadTest {
 
 	private final AtomicReference<String> path = new AtomicReference<>();
 
+	private final AtomicReference<String> method = new AtomicReference<>();
+
 	private final AtomicReference<String> body = new AtomicReference<>();
 
 	private final AtomicReference<String> auth = new AtomicReference<>();
@@ -56,6 +58,7 @@ class ChannelPayloadTest {
 		server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
 		server.createContext("/", (exchange) -> {
 			path.set(exchange.getRequestURI().getPath());
+			method.set(exchange.getRequestMethod());
 			auth.set(exchange.getRequestHeaders().getFirst("Authorization"));
 			accessToken.set(exchange.getRequestHeaders().getFirst("Access-Token"));
 			body.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
@@ -301,8 +304,13 @@ class ChannelPayloadTest {
 		new MatrixNotifier<Evt>(base(), "tok", "!room:hs.example", HttpClientConfig.defaults(), Evt::id, Evt::status,
 				Evt::message, List.of())
 			.notify(evt());
-		// the room id is URL-encoded on the wire; the server decodes it back
-		assertThat(path.get()).isEqualTo("/_matrix/client/v3/rooms/!room:hs.example/send/m.room.message");
+		// spec requires PUT .../send/{eventType}/{txnId} (the room id is URL-encoded on
+		// the
+		// wire; the server decodes it back). A non-spec txn-less POST is rejected by
+		// spec-compliant homeservers (Conduit/Dendrite) — see #94.
+		assertThat(method.get()).isEqualTo("PUT");
+		assertThat(path.get()).startsWith("/_matrix/client/v3/rooms/!room:hs.example/send/m.room.message/")
+			.matches(".*/send/m\\.room\\.message/[^/]+$");
 		assertThat(auth.get()).isEqualTo("Bearer tok");
 		assertThat(body.get()).isEqualTo("{\"msgtype\":\"m.text\",\"body\":\"build broke\"}");
 	}

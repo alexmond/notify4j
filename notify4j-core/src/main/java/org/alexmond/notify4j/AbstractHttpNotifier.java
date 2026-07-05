@@ -128,11 +128,36 @@ public abstract class AbstractHttpNotifier<E> extends AbstractEventNotifier<E> {
 		return httpConfig.nonBlockingRetry();
 	}
 
+	/**
+	 * The HTTP method for the request. Defaults to {@code POST} (the webhook shape). A
+	 * channel whose API mandates a different verb overrides this — e.g. the Matrix
+	 * Client-Server send endpoint requires {@code PUT}.
+	 * @return the HTTP method name
+	 * @since 1.1.1
+	 */
+	protected String httpMethod() {
+		return "POST";
+	}
+
+	/**
+	 * The absolute request URL for this delivery. Defaults to the fixed configured URL. A
+	 * channel that must vary the URL per message overrides this — e.g. Matrix appends a
+	 * unique transaction-id path segment. It runs once per delivery (inside
+	 * {@link #buildRequest}), so an overriding id stays stable across retries and can act
+	 * as the server-side idempotency key.
+	 * @param event the event being delivered
+	 * @return the URL to send to
+	 * @since 1.1.1
+	 */
+	protected String requestUrl(E event) {
+		return this.url;
+	}
+
 	private HttpRequest buildRequest(E event) {
-		HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(url))
+		HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(requestUrl(event)))
 			.header("Content-Type", contentType())
 			.timeout(httpConfig.requestTimeout())
-			.POST(HttpRequest.BodyPublishers.ofString(payload(event), StandardCharsets.UTF_8));
+			.method(httpMethod(), HttpRequest.BodyPublishers.ofString(payload(event), StandardCharsets.UTF_8));
 		headers().forEach(builder::header);
 		return builder.build();
 	}
