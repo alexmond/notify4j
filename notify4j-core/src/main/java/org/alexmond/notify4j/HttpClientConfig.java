@@ -62,7 +62,12 @@ public record HttpClientConfig(HttpClient client, Duration requestTimeout, int m
 		// Redirects are pinned to NEVER (rather than relying on the JDK default) so a
 		// credentialed POST can't be bounced by a 3xx to an attacker-chosen host —
 		// channel requests carry secrets in headers/body. Do not relax this.
+		// Pin HTTP/1.1. The JDK client defaults to HTTP/2, whose cleartext
+		// h2c upgrade some webhook servers (e.g. Rocket.Chat) mishandle — the
+		// exchange then stalls until the request timeout and the send fails.
+		// A lone POST gains nothing from HTTP/2 anyway.
 		HttpClient client = HttpClient.newBuilder()
+			.version(HttpClient.Version.HTTP_1_1)
 			.connectTimeout(connectTimeout)
 			.followRedirects(HttpClient.Redirect.NEVER)
 			.build();
