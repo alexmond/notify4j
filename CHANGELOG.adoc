@@ -1,7 +1,11 @@
 = Changelog
 
-== 1.1.1 (unreleased)
+== 1.1.1 (2026-07-07)
 
+* *Fix (core):* webhook delivery now pins HTTP/1.1 for the shared JDK `HttpClient`. The client
+  defaults to HTTP/2, whose cleartext h2c upgrade some webhook servers (e.g. Rocket.Chat)
+  mishandle — the exchange stalled until the request timeout and the send failed. A single POST
+  gains nothing from HTTP/2, so 1.1 is pinned unconditionally. (#96)
 * *Fix (Matrix):* the Matrix channel now sends `PUT .../rooms/{roomId}/send/m.room.message/{txnId}`
   per the Client-Server API spec instead of a non-spec, transaction-id-less `POST`. The old form
   worked only against Synapse (which tolerates it); spec-compliant homeservers (Conduit, Dendrite)
