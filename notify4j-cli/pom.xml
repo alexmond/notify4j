@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.alexmond</groupId>
+        <artifactId>notify4j-parent</artifactId>
+        <version>1.1.2-SNAPSHOT</version>
+    </parent>
+    <artifactId>notify4j-cli</artifactId>
+    <name>notify4j-cli</name>
+    <description>Command-line sender for notify4j: send one ad-hoc notification to any channel URL,
+        from a shell or a CI build. Not published to Maven Central (shipped as a fat jar + GHCR image).</description>
+
+    <properties>
+        <!-- App module, not a published library: skip Javadoc (and doclint) and coverage. -->
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <jacoco.skip>true</jacoco.skip>
+    </properties>
+
+    <dependencies>
+        <!-- Brings notify4j-core (Notifications.sendOnce / Message / ChannelCatalog) transitively,
+             plus the email channel + notify4j.* config binding, per the Spring Boot + picocli choice. -->
+        <dependency>
+            <groupId>org.alexmond</groupId>
+            <artifactId>notify4j-spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli-spring-boot-starter</artifactId>
+            <version>${picocli.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>notify4j-cli</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <!-- Stamp version/time into META-INF/build-info.properties so the version flag
+                         reports the real build via Spring Boot build-info, not a hardcoded literal. -->
+                    <execution>
+                        <id>build-info</id>
+                        <goals>
+                            <goal>build-info</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

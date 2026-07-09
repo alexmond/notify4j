@@ -1,5 +1,18 @@
 = Changelog
 
+== 1.2.0 (unreleased)
+
+* *New — command-line sender (`notify4j-cli`):* a Picocli CLI that sends one ad-hoc
+  notification to any channel URL from a shell or a CI build, wrapping
+  `Notifications.sendOnce`. Commands: `send` (`--url` repeatable or `$NOTIFY4J_URLS`,
+  `--title`, `--body` or stdin, `--severity`), `channels` (list every scheme from
+  `ChannelCatalog`), and `validate` / `redact` for a URL. The exit code is non-zero when any
+  channel fails, so it can gate a build step. Shipped as a fat jar and a GHCR image
+  (`ghcr.io/alexmond/notify4j-cli`); not published to Maven Central.
+* *New — GitHub Action:* `uses: alexmond/notify4j@v1` sends from a workflow
+  (`with:` `urls`, `title`, `body`, `severity`), wrapping the CLI image — no Java setup on the
+  runner.
+
 == 1.1.1 (2026-07-07)
 
 * *Fix (core):* webhook delivery now pins HTTP/1.1 for the shared JDK `HttpClient`. The client

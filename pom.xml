@@ -51,6 +51,7 @@
         <module>notify4j-bom</module>
         <module>notify4j-core</module>
         <module>notify4j-spring-boot-starter</module>
+        <module>notify4j-cli</module>
     </modules>
 
     <properties>
@@ -64,6 +65,8 @@
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <spring-javaformat.version>0.0.47</spring-javaformat.version>
         <checkstyle.version>9.3</checkstyle.version>
+        <!-- picocli is not managed by the Spring Boot BOM; pin it for the notify4j-cli module. -->
+        <picocli.version>4.7.7</picocli.version>
     </properties>
 
     <dependencyManagement>
@@ -143,6 +146,7 @@
                              if the reactor changes. The real libraries (bom/core/starter) still publish. -->
                         <excludeArtifacts>
                             <excludeArtifact>notify4j-sample</excludeArtifact>
+                            <excludeArtifact>notify4j-cli</excludeArtifact>
                         </excludeArtifacts>
                     </configuration>
                 </plugin>

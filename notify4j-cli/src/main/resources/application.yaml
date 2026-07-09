@@ -1,0 +1,9 @@
+# CLI runtime: no web server, no banner, and keep stdout clean — WARN keeps a failed
+# channel's reason visible (channels log delivery failures at WARN) without Spring noise.
+spring:
+  main:
+    banner-mode: "off"
+    web-application-type: none
+logging:
+  level:
+    root: warn
