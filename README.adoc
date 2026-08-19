@@ -7,9 +7,12 @@ image:https://img.shields.io/badge/license-Apache--2.0-blue.svg[License,link=htt
 image:https://github.com/alexmond/notify4j/actions/workflows/maven.yml/badge.svg[Build,link=https://github.com/alexmond/notify4j/actions/workflows/maven.yml]
 image:https://img.shields.io/badge/Java-17%2B-blue.svg[Java 17+]
 image:https://codecov.io/gh/alexmond/notify4j/branch/main/graph/badge.svg[Codecov,link=https://codecov.io/gh/alexmond/notify4j]
+image:https://img.shields.io/badge/docs-alexmond.org-blue[Documentation,link=https://www.alexmond.org/notify4j/current/]
 
 An *embeddable, domain-agnostic multi-channel notification library* for Java / Spring Boot. The jar is
 the product — there is no server to run.
+
+📖 *Documentation:* https://www.alexmond.org/notify4j/current/
 
 == Why notify4j
 
