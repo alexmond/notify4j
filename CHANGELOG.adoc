@@ -1,5 +1,16 @@
 = Changelog
 
+== Unreleased
+
+* *Breaking (build layout):* the Spring Boot starter and the sample moved to the
+  https://github.com/alexmond/notify4j-spring-boot[notify4j-spring-boot] repo, where the starter is
+  released per Spring Boot line with a `<boot-version>.<revision>` version (first releases
+  `4.0.8.1` and `4.1.1.1`). The coordinates `org.alexmond:notify4j-spring-boot-starter`, the Java
+  package and the `notify4j.*` properties are unchanged.
+* `notify4j-bom` no longer manages `notify4j-spring-boot-starter`. If you import the BOM and
+  declare the starter without a version, add the starter version explicitly.
+* `notify4j-core` is unchanged.
+
 == 1.1.1 (2026-07-07)
 
 * *Fix (core):* webhook delivery now pins HTTP/1.1 for the shared JDK `HttpClient`. The client

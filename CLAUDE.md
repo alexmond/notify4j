@@ -13,8 +13,7 @@ Status: the implementation is being extracted from `alexmond/builder` (`builder-
 Multi-module Maven build (parent inherits from `spring-boot-starter-parent`). Use the wrapper.
 
 ```shell
-./mvnw verify                       # build + test + ALL quality gates (core + starter)
-./mvnw verify -Pdefault             # also builds/tests notify4j-sample (this is what CI runs)
+./mvnw verify                       # build + test + ALL quality gates (this is what CI runs)
 ./mvnw -pl notify4j-core test       # test one module
 ./mvnw -pl notify4j-core test -Dtest=NotifierUrlParserTest          # single test class
 ./mvnw -pl notify4j-core test -Dtest=NotifierUrlParserTest#parsesSlack  # single test method
@@ -35,9 +34,9 @@ The whole design keeps a **Spring-free core** generic over the application's eve
 
 ### Modules
 - **notify4j-core** — the engine. No Spring dependency; uses the JDK `HttpClient`.
-- **notify4j-spring-boot-starter** — auto-configuration that binds `notify4j.*` properties; adds the email channel (the one channel that is *not* a URL, since it's Spring-mail-coupled).
-- **notify4j-bom** — dependency BOM for version alignment.
-- **notify4j-sample** — runnable example; only built under `-Pdefault`, never released.
+- **notify4j-bom** — dependency BOM for the modules in this repo.
+
+The **Spring Boot starter** (`notify4j-spring-boot-starter`) and the runnable **sample** live in the separate [`notify4j-spring-boot`](https://github.com/alexmond/notify4j-spring-boot) repo. It is versioned per Spring Boot line (`<boot-version>.<revision>`) and consumes `notify4j-core` as a **released** artifact pinned by its `notify4j.version` property. A starter change that needs new core code therefore needs a core release from this repo first.
 
 ### The key seams (read these together to understand the flow)
 - **`Notifier<E>`** — the SPI: `void notify(E)`. Implementations must **never throw**; a failing channel must not break the caller.
@@ -56,5 +55,5 @@ The whole design keeps a **Spring-free core** generic over the application's eve
 ### Transition semantics (`TransitionFilter`)
 Stateful gate keyed by entity `id`: tracks last status, suppresses non-transitions and any change matching an `ignoreChanges` pattern (`OLD:NEW` with `*` wildcards, e.g. `*:RUNNING`). The starter's default `ignore-changes` is `*:PENDING`, `*:RUNNING`, `*:ASSIGNED` so channels fire on terminal SUCCESS/FAILED, not intermediate states.
 
-### Spring starter wiring (`NotificationsAutoConfiguration`)
+### Spring starter wiring (`NotificationsAutoConfiguration`, in the `notify4j-spring-boot` repo)
 Everything is conditional on the app providing a `NotificationAdapter` bean. The factory + global facade are created from `notify4j.*` props; **any other `Notifier` beans in the context are auto-folded in as extra fan-out targets**. Email registers as an extra `Notifier` only when a `JavaMailSender` exists and `notify4j.email.to` is set. Raw generic types in this class are deliberate (the event type is known only to the adapter bean). Properties prefix is `notify4j` (bound by `NotificationProperties`).

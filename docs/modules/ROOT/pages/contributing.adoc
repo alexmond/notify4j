@@ -8,8 +8,7 @@ repository for the full workflow. The essentials:
 
 [source,shell]
 ----
-./mvnw verify                       # build + test + all quality gates
-./mvnw verify -Pdefault             # also builds/tests the sample (what CI runs)
+./mvnw verify                       # build + test + all quality gates (what CI runs)
 ./mvnw spring-javaformat:apply      # auto-fix formatting before committing
 ----
 

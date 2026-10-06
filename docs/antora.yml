@@ -6,6 +6,10 @@ asciidoc:
   attributes:
     api-core: https://javadoc.io/doc/org.alexmond/notify4j-core/latest
     api-starter: https://javadoc.io/doc/org.alexmond/notify4j-spring-boot-starter/latest
+    # The Spring Boot starter is released per Spring Boot line from the notify4j-spring-boot repo,
+    # so its version is NOT {page-component-version}. Bump when that repo cuts a new line.
+    starter-version: 4.1.1.1
+    starter-repo: https://github.com/alexmond/notify4j-spring-boot
     toc: left
     sectnums: ''
     author: 'Alexander Mondshain'
