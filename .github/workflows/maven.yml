@@ -8,7 +8,15 @@ on:
 
 jobs:
   build:
+    name: build (JDK ${{ matrix.java }})
     runs-on: ubuntu-latest
+    # Compatibility matrix: the Java 17 baseline plus the later LTS releases this Spring Boot
+    # line supports. Bytecode always targets the baseline. Reporting steps run once, on the
+    # baseline JDK, so results are not uploaded once per JDK.
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [ '17', '21', '25' ]
     env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     permissions:
@@ -17,10 +25,10 @@ jobs:
       pull-requests: write   # to comment test results on PRs
     steps:
       - uses: actions/checkout@v7
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: ${{ matrix.java }}
           distribution: 'temurin'
           cache: maven
       - name: Build with Maven
@@ -28,7 +36,7 @@ jobs:
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
+        if: ${{ always() && matrix.java == '17' }}
         with:
           files: |
             **/surefire-reports/TEST-*.xml
@@ -37,7 +45,7 @@ jobs:
       # When present we enforce (fail_ci_if_error); when absent the step is skipped so
       # CI stays green until the token lands. (Tokenless upload isn't allowed on this org.)
       - name: Add coverage to PR
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' && matrix.java == '17' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ env.CODECOV_TOKEN }}
@@ -45,7 +53,7 @@ jobs:
           fail_ci_if_error: true
 
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' && matrix.java == '17' }}
         uses: codecov/test-results-action@v1
         with:
           token: ${{ env.CODECOV_TOKEN }}
@@ -54,7 +62,7 @@ jobs:
       # Best-effort supply-chain snapshot; needs the repo's Dependency graph feature
       # enabled (Settings -> Code security). Never fail CI on it.
       - name: Report tests + coverage to UniTrack
-        if: always()
+        if: ${{ always() && matrix.java == '17' }}
         uses: alexmond/unitrack/action@v0
         with:
           url: ${{ vars.UNITRACK_URL }}
@@ -65,6 +73,6 @@ jobs:
           split-by-module: "true"
 
       - name: Submit Dependency Snapshot
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.java == '17' }}
         continue-on-error: true
         uses: advanced-security/maven-dependency-submission-action@v5
