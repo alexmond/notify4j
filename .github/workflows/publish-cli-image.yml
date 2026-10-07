@@ -1,0 +1,57 @@
+name: Publish CLI image
+
+# Builds the hermetic notify4j-cli image (JRE + fat jar) and pushes it to GHCR, so the
+# Docker-based GitHub Action (action.yml, image: ghcr.io/alexmond/notify4j-cli:1) has an image
+# to run. Fires on a release tag (X.Y.Z) and can be run manually. Kept separate from the build
+# pipeline so the test build stays simple.
+on:
+  push:
+    tags: [ '*.*.*' ]
+  workflow_dispatch:
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build CLI jar
+        run: ./mvnw -B -pl notify4j-cli -am -DskipTests package
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image tags & labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/notify4j-cli
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: notify4j-cli/target
+          file: deploy/cli.Containerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64

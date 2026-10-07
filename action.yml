@@ -1,0 +1,41 @@
+name: notify4j send
+description: Send a notification to any notify4j channel URL(s) from a workflow — Slack, Discord, Telegram, ntfy, PagerDuty, and more.
+author: Alex Mondshain
+branding:
+  icon: bell
+  color: blue
+
+inputs:
+  urls:
+    description: >-
+      Channel URL(s) to send to — one per line or comma-separated. Each selects the channel by
+      its scheme (slack://…, discord://…, telegram://…). Pass via a secret; the URL carries the
+      credential. Run `notify4j channels` for the full list.
+    required: true
+  title:
+    description: Message title (maps to the channel's native title where supported).
+    required: false
+    default: ""
+  body:
+    description: Message body.
+    required: true
+  severity:
+    description: "Severity: INFO | WARNING | ERROR | CRITICAL."
+    required: false
+    default: INFO
+
+# Docker action: run the pre-built CLI image straight from GHCR (published on each release by
+# publish-cli-image.yml). URLs go in via env (the CLI reads $NOTIFY4J_URLS); the rest as args.
+runs:
+  using: docker
+  image: docker://ghcr.io/alexmond/notify4j-cli:1
+  env:
+    NOTIFY4J_URLS: ${{ inputs.urls }}
+  args:
+    - send
+    - --title
+    - ${{ inputs.title }}
+    - --body
+    - ${{ inputs.body }}
+    - --severity
+    - ${{ inputs.severity }}

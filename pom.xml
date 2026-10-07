@@ -7,7 +7,7 @@
 
     <groupId>org.alexmond</groupId>
     <artifactId>notify4j-parent</artifactId>
-    <version>1.2.1-SNAPSHOT</version>
+    <version>1.3.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>notify4j-parent</name>
     <description>Embeddable, domain-agnostic multi-channel notification library for Java/Spring
@@ -51,6 +51,7 @@
     <modules>
         <module>notify4j-bom</module>
         <module>notify4j-core</module>
+        <module>notify4j-cli</module>
     </modules>
 
     <properties>
@@ -64,6 +65,8 @@
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <spring-javaformat.version>0.0.47</spring-javaformat.version>
         <checkstyle.version>9.3</checkstyle.version>
+        <!-- picocli is not managed by the Spring Boot BOM; pin it for the notify4j-cli module. -->
+        <picocli.version>4.7.7</picocli.version>
     </properties>
 
     <dependencyManagement>
@@ -132,6 +135,12 @@
                              not the slow async publish step, whose poll window timed out on 0.4.0
                              even though publishing succeeded. autoPublish still publishes once validated. -->
                         <waitUntil>validated</waitUntil>
+                        <!-- This aggregator plugin ignores maven.deploy.skip, so guard non-library
+                             modules by artifactId. notify4j-cli is an app (fat jar + GHCR image), not a
+                             library, so it stays off Central. The real libraries (bom/core) still publish. -->
+                        <excludeArtifacts>
+                            <excludeArtifact>notify4j-cli</excludeArtifact>
+                        </excludeArtifacts>
                     </configuration>
                 </plugin>
                 <plugin>

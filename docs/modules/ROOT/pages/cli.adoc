@@ -1,0 +1,59 @@
+= Command-line sender (notify4j-cli)
+
+`notify4j-cli` sends a single ad-hoc notification to any channel URL from a shell or a CI
+build — the same channels the library speaks (Slack, Discord, Telegram, ntfy, PagerDuty, …),
+without writing any code. It wraps `Notifications.sendOnce`, so a run attempts every URL once
+and exits non-zero if any channel fails, which makes it usable as a build step that fails the
+job on a delivery failure.
+
+It is *not* published to Maven Central — it ships as a fat jar attached to each GitHub Release
+and as a container image at `ghcr.io/alexmond/notify4j-cli`.
+
+== Run it
+
+[source,shell]
+----
+# fat jar (needs a JRE 17+)
+java -jar notify4j-cli.jar send \
+  --url 'slack://hooks.slack.com/services/T000/B000/XXXX' \
+  --title "CI" --body "build passed" --severity INFO
+
+# container (no Java needed) — pass channel URLs via env, never on the command line in CI logs
+docker run --rm -e NOTIFY4J_URLS='slack://hooks.slack.com/services/T000/B000/XXXX' \
+  ghcr.io/alexmond/notify4j-cli send -t "CI" -b "build passed"
+----
+
+== Commands
+
+`send`:: Deliver one message. Options: `--url`/`-u` (repeatable; or set `$NOTIFY4J_URLS`,
+comma/newline separated), `--title`/`-t`, `--body`/`-b` (or piped on stdin), `--severity`/`-s`
+(`INFO` | `WARNING` | `ERROR` | `CRITICAL`), `--quiet`/`-q`. Exit `0` if every channel
+accepted, `1` if any failed, `2` for a usage error.
+`channels`:: List every channel scheme and its setup docs (from the built-in `ChannelCatalog`,
+so it stays current as channels are added).
+`validate URL`:: Check a channel URL names a known scheme and parses; prints it redacted.
+`redact URL`:: Print a channel URL with its secret masked, safe to paste into a log or issue.
+
+Body from stdin:
+
+[source,shell]
+----
+echo "deploy finished" | java -jar notify4j-cli.jar send -u "$NOTIFY4J_URL" -t "Deploy"
+----
+
+== GitHub Action
+
+Send from a workflow with no Java setup on the runner — it wraps the CLI image:
+
+[source,yaml]
+----
+- uses: alexmond/notify4j@v1
+  with:
+    urls: ${{ secrets.NOTIFY4J_URL }}   # keep the credential in a secret
+    title: CI
+    body: "Build ${{ github.run_number }} passed on ${{ github.ref_name }}"
+    severity: INFO
+----
+
+`urls` accepts one URL per line (or comma-separated) to fan out to several channels in one
+step. Because the URL carries the channel credential, always pass it from a secret.

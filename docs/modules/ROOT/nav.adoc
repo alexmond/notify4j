@@ -1,5 +1,6 @@
 * xref:index.adoc[Introduction]
 * xref:getting-started.adoc[Getting started]
+* xref:cli.adoc[Command-line sender]
 * xref:configuration.adoc[Configuration]
 * xref:architecture.adoc[Architecture]
 * xref:contributing.adoc[Contributing]
