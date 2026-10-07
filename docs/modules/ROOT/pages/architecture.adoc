@@ -13,15 +13,16 @@ single `NotificationAdapter<E>` bridges it.
 | `notify4j-core`
 | The engine. No Spring dependency; uses the JDK `HttpClient`.
 
+| `notify4j-bom`
+| Dependency BOM for the modules in this repo.
+
 | `notify4j-spring-boot-starter`
 | Auto-configuration binding `notify4j.*`; adds the email channel (the one channel that is
-not a URL).
-
-| `notify4j-bom`
-| Dependency BOM for version alignment.
+not a URL). Lives in the {starter-repo}[notify4j-spring-boot] repo and is released per
+Spring Boot line.
 
 | `notify4j-sample`
-| Runnable example. Built under the `default` profile only; never released.
+| Runnable example, also in {starter-repo}[notify4j-spring-boot]. Never released.
 |===
 
 == Core concepts

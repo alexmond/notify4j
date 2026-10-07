@@ -2,7 +2,7 @@
 :toc: macro
 :icons: font
 
-image:https://img.shields.io/maven-central/v/org.alexmond/notify4j-spring-boot-starter.svg[Maven Central,link=https://central.sonatype.com/artifact/org.alexmond/notify4j-spring-boot-starter]
+image:https://img.shields.io/maven-central/v/org.alexmond/notify4j-core.svg[Maven Central,link=https://central.sonatype.com/artifact/org.alexmond/notify4j-core]
 image:https://img.shields.io/badge/license-Apache--2.0-blue.svg[License,link=https://www.apache.org/licenses/LICENSE-2.0]
 image:https://github.com/alexmond/notify4j/actions/workflows/maven.yml/badge.svg[Build,link=https://github.com/alexmond/notify4j/actions/workflows/maven.yml]
 image:https://img.shields.io/badge/Java-17%2B-blue.svg[Java 17+]
@@ -28,13 +28,27 @@ the product — there is no server to run.
 
 == Get started
 
-Add the Spring Boot starter (pulls in `notify4j-core`):
+Add the Spring Boot starter (pulls in `notify4j-core`). The starter is released per Spring Boot
+line from the https://github.com/alexmond/notify4j-spring-boot[notify4j-spring-boot] repo, and its
+version tracks the Spring Boot version — pick the one that matches your application from the
+https://github.com/alexmond/notify4j-spring-boot#spring-boot-compatibility[compatibility table]:
 
 [source,xml]
 ----
 <dependency>
     <groupId>org.alexmond</groupId>
     <artifactId>notify4j-spring-boot-starter</artifactId>
+    <version>4.1.1.1</version>
+</dependency>
+----
+
+Not on Spring? Use the engine directly:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.alexmond</groupId>
+    <artifactId>notify4j-core</artifactId>
     <version>1.1.1</version>
 </dependency>
 ----
@@ -51,7 +65,7 @@ notify4j:
 ----
 
 The starter auto-configures a `Notifications` facade you inject and call: `notifications.send(event)`.
-See the link:notify4j-sample[`notify4j-sample`] module and the
+See the https://github.com/alexmond/notify4j-spring-boot/tree/main/notify4j-sample[`notify4j-sample`] app and the
 https://www.alexmond.org/notify4j/current/[reference docs] for a full walkthrough.
 
 API reference (javadoc.io):
@@ -63,15 +77,17 @@ https://javadoc.io/doc/org.alexmond/notify4j-spring-boot-starter/latest/index.ht
 [cols="1,3"]
 |===
 | `notify4j-core` | Spring-free engine: `Notifier<E>` SPI, wrappers, URL parser, facade, channels.
-| `notify4j-spring-boot-starter` | Auto-configuration: binds `notify4j.urls`; email optional.
-| `notify4j-bom` | Dependency BOM — import to align versions and "pick all".
+| `notify4j-bom` | Dependency BOM for the modules in this repo.
 |===
+
+The Spring Boot starter (`notify4j-spring-boot-starter`) and the runnable sample live in
+https://github.com/alexmond/notify4j-spring-boot[notify4j-spring-boot].
 
 == Build
 
 [source,shell]
 ----
-./mvnw verify              # build + test (add -Pdefault to include the sample)
+./mvnw verify              # build + test + quality gates
 ----
 
 == License
