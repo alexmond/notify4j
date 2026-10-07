@@ -1,6 +1,6 @@
 = Changelog
 
-== Unreleased
+== 1.2.0 (2026-10-06)
 
 * *Breaking (build layout):* the Spring Boot starter and the sample moved to the
   https://github.com/alexmond/notify4j-spring-boot[notify4j-spring-boot] repo, where the starter is
