@@ -19,6 +19,6 @@ jobs:
       - name: import-gpg-key
         run: printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --import
       - name: verify
-        run: ./mvnw --batch-mode verify -Pdefault --no-transfer-progress -Dmaven.repo.local=.m2/repository
+        run: ./mvnw --batch-mode verify --no-transfer-progress -Dmaven.repo.local=.m2/repository
       - name: deploy
         run: ./mvnw --batch-mode clean deploy -Prelease -Dgpg.passphrase="$GPG_PASSPHRASE" --no-transfer-progress -Dmaven.repo.local=.m2/repository

@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.alexmond</groupId>
         <artifactId>notify4j-parent</artifactId>
-        <version>1.1.2-SNAPSHOT</version>
+        <version>1.2.1-SNAPSHOT</version>
     </parent>
     <artifactId>notify4j-cli</artifactId>
     <name>notify4j-cli</name>
@@ -19,11 +19,12 @@
     </properties>
 
     <dependencies>
-        <!-- Brings notify4j-core (Notifications.sendOnce / Message / ChannelCatalog) transitively,
-             plus the email channel + notify4j.* config binding, per the Spring Boot + picocli choice. -->
+        <!-- The Spring-free engine (Notifications.sendOnce / Message / ChannelCatalog) is all the CLI
+             uses. The notify4j Spring Boot starter lives in the notify4j-spring-boot repo and is built
+             on this core, so this repo must not depend on it. -->
         <dependency>
             <groupId>org.alexmond</groupId>
-            <artifactId>notify4j-spring-boot-starter</artifactId>
+            <artifactId>notify4j-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

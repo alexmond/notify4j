@@ -10,11 +10,11 @@ import picocli.CommandLine.IFactory;
 /**
  * Spring Boot entry point for the {@code notify4j} command-line sender.
  * <p>
- * Boots the Spring context (so the notify4j starter's config binding and beans are
- * available), then hands the arguments to the Picocli {@link Notify4jCommand}. The
- * process exit code reported to the shell is Picocli's execution result — {@code 0} when
- * every targeted channel accepted the message, non-zero otherwise — so the CLI is usable
- * as a build step that fails the job on a delivery failure.
+ * Boots the Spring context (which wires the Picocli command beans and build-info), then
+ * hands the arguments to the Picocli {@link Notify4jCommand}. The process exit code
+ * reported to the shell is Picocli's execution result — {@code 0} when every targeted
+ * channel accepted the message, non-zero otherwise — so the CLI is usable as a build step
+ * that fails the job on a delivery failure.
  */
 @SpringBootApplication
 public class Notify4jCliApplication implements CommandLineRunner, ExitCodeGenerator {

@@ -32,7 +32,6 @@ install needed.
 [source,shell]
 ----
 ./mvnw verify                                          # build + test + all quality gates
-./mvnw verify -Pdefault                                # also builds/tests the sample (CI uses this)
 ./mvnw -pl notify4j-core test                          # test one module
 ./mvnw -pl notify4j-core test -Dtest=ChannelPayloadTest # a single test class
 ./mvnw spring-javaformat:apply                         # auto-fix formatting

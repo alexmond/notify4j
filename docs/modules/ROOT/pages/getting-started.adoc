@@ -17,22 +17,14 @@ The starter transitively pulls in `notify4j-core`:
 <dependency>
     <groupId>org.alexmond</groupId>
     <artifactId>notify4j-spring-boot-starter</artifactId>
-    <version>{page-component-version}</version>
+    <version>{starter-version}</version>
 </dependency>
 ----
 
-To align versions across modules, import the BOM in `<dependencyManagement>`:
-
-[source,xml,subs="attributes+"]
-----
-<dependency>
-    <groupId>org.alexmond</groupId>
-    <artifactId>notify4j-bom</artifactId>
-    <version>{page-component-version}</version>
-    <type>pom</type>
-    <scope>import</scope>
-</dependency>
-----
+The starter is released per Spring Boot line from the {starter-repo}[notify4j-spring-boot]
+repo. Its version tracks the Spring Boot version it is built against
+(`<boot-version>.<revision>`), so it differs from the notify4j version. Pick the line that
+matches your application from the {starter-repo}#spring-boot-compatibility[compatibility table].
 
 == 2. Provide a NotificationAdapter
 
@@ -101,8 +93,9 @@ failures are retried. Both are configurable — see xref:configuration.adoc[Conf
 
 == Try the sample
 
-The `notify4j-sample` module is a runnable Spring Boot app wired exactly as above; its
-`application.yml` ships a commented example of every channel. Build it with:
+The `notify4j-sample` module in the {starter-repo}[notify4j-spring-boot] repo is a runnable
+Spring Boot app wired exactly as above; its `application.yml` ships a commented example of
+every channel. From a checkout of that repo, run it with:
 
 [source,shell]
 ----

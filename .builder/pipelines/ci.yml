@@ -16,4 +16,4 @@ jobs:
         - .m2/repository
     steps:
       - name: build
-        run: ./mvnw -B verify -Pdefault --no-transfer-progress -Dmaven.repo.local=.m2/repository
+        run: ./mvnw -B verify --no-transfer-progress -Dmaven.repo.local=.m2/repository

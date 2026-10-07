@@ -1,6 +1,6 @@
 = Changelog
 
-== 1.2.0 (unreleased)
+== 1.2.1 (unreleased)
 
 * *New — command-line sender (`notify4j-cli`):* a Picocli CLI that sends one ad-hoc
   notification to any channel URL from a shell or a CI build, wrapping
@@ -12,6 +12,17 @@
 * *New — GitHub Action:* `uses: alexmond/notify4j@v1` sends from a workflow
   (`with:` `urls`, `title`, `body`, `severity`), wrapping the CLI image — no Java setup on the
   runner.
+
+== 1.2.0 (2026-10-06)
+
+* *Breaking (build layout):* the Spring Boot starter and the sample moved to the
+  https://github.com/alexmond/notify4j-spring-boot[notify4j-spring-boot] repo, where the starter is
+  released per Spring Boot line with a `<boot-version>.<revision>` version (first releases
+  `4.0.8.1` and `4.1.1.1`). The coordinates `org.alexmond:notify4j-spring-boot-starter`, the Java
+  package and the `notify4j.*` properties are unchanged.
+* `notify4j-bom` no longer manages `notify4j-spring-boot-starter`. If you import the BOM and
+  declare the starter without a version, add the starter version explicitly.
+* `notify4j-core` is unchanged.
 
 == 1.1.1 (2026-07-07)
 
