@@ -76,6 +76,7 @@ public class Notifications<E> implements AutoCloseable {
 	}
 
 	/**
+	 * Creates the notification facade.
 	 * @param urls channel URLs (see {@link NotifierUrlParser}); {@code null}/blank
 	 * entries skipped
 	 * @param adapter reads id/status/message from the event

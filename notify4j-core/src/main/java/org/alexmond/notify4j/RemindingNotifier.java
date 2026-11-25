@@ -47,6 +47,7 @@ public class RemindingNotifier<E> implements Notifier<E>, AutoCloseable {
 	private ScheduledExecutorService scheduler;
 
 	/**
+	 * Creates a notifier that repeats reminders.
 	 * @param delegate the notifier to (re-)deliver through
 	 * @param idFn reads the entity id from an event (the reminder key)
 	 * @param statusFn reads the current status from an event

@@ -32,6 +32,7 @@ public class AsyncNotifier<E> implements Notifier<E> {
 	}
 
 	/**
+	 * Creates a notifier that delivers on another thread.
 	 * @param delegate the channel to deliver to off-thread
 	 * @param executor the pool to deliver on
 	 * @param metrics sink that records a {@link NotificationMetrics#recordDropped drop}

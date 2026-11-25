@@ -20,6 +20,7 @@ public class OpsGenieNotifier<E> extends AbstractHttpNotifier<E> {
 	private final String apiKey;
 
 	/**
+	 * Creates an OpsGenie notifier.
 	 * @param endpoint the Alert API base (e.g. {@code https://api.opsgenie.com});
 	 * {@code /v2/alerts} is appended.
 	 */

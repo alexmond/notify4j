@@ -22,6 +22,7 @@ public class ExpiringFilter<E> implements NotificationFilter<E> {
 	private final Clock clock;
 
 	/**
+	 * Creates a filter that can expire.
 	 * @param id stable id so the mute can be looked up / removed
 	 * @param predicate true to suppress (mute) a given event
 	 * @param expiresAt when to drop this filter; {@code null} = never expires
