@@ -21,6 +21,7 @@ public class PagerDutyNotifier<E> extends AbstractHttpNotifier<E> {
 	private final String routingKey;
 
 	/**
+	 * Creates a PagerDuty notifier.
 	 * @param endpoint the Events API base (e.g. {@code https://events.pagerduty.com});
 	 * {@code /v2/enqueue} is appended.
 	 */

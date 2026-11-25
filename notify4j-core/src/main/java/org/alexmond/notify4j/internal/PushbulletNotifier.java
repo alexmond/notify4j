@@ -20,6 +20,7 @@ public class PushbulletNotifier<E> extends AbstractHttpNotifier<E> {
 	private final String accessToken;
 
 	/**
+	 * Creates a Pushbullet notifier.
 	 * @param endpoint the API base (e.g. {@code https://api.pushbullet.com});
 	 * {@code /v2/pushes} is appended.
 	 */

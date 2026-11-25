@@ -3,12 +3,13 @@ package org.alexmond.notify4j.cli;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 
 /**
  * Smoke test: the full CLI context boots — picocli-spring wiring and every
  * {@code @Command} bean load on the Spring-free notify4j core alone.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(webEnvironment = WebEnvironment.NONE)
 class Notify4jCliApplicationTests {
 
 	@Test
